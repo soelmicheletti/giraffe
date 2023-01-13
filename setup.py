@@ -13,5 +13,10 @@ setup(
         "gene regulatory networks",
         "matrix factorization",
     ],
-    install_requires=["matplotlib>=3.3.4", "numpy>=1.19.2", "pandas>=1.4.4", "sklearn>=0.0", "torch>=1.1"],
+    install_requires=["matplotlib>=3.3.4",
+                      "netZooPy>=0.8.1",
+                      "numpy>=1.19.2",
+                      "pandas>=1.4.4",
+                      "sklearn>=0.0",
+                      "torch>=1.1"],
 )

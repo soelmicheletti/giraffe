@@ -53,7 +53,7 @@ class Giraffe(object):
             lr = 0.00001,
             lam = None
     ):
-        self.processData(
+        self.process_data(
             expression,
             motif,
             ppi,
@@ -64,7 +64,7 @@ class Giraffe(object):
         self._lam = lam
         self._R, self._TFA = self._compute_giraffe()
 
-    def processData(
+    def process_data(
             self,
             expression,
             motif,
@@ -137,9 +137,9 @@ class Giraffe(object):
             pred = giraffe_model(
                 torch.Tensor(self._expression),
                 torch.Tensor(self._ppi),
-                torch.Tensor(self._c),
+                torch.Tensor(self._C),
                 self._lam,
-                self._controlling
+                self._adjusting
             ) # Compute f(R, TFA)
             loss = F.mse_loss(pred, torch.norm(torch.Tensor(np.zeros((3, 3))))).sqrt() # Minimization problem: loss = ||f(R, TFA)||
             optim.zero_grad() # Reset gradients
@@ -147,6 +147,7 @@ class Giraffe(object):
             optim.step() # Adam step
 
         R = giraffe_model.R.detach().numpy()
+        print(R)
         TFA = torch.abs(giraffe_model.TFA.detach()).numpy()
         return R, TFA
 

@@ -39,9 +39,9 @@ class Giraffe(object):
             Public Functions
             ---------
             get_regulation : numpy array
-                    Returns the predicted TF-gene complete regulatory network as an adjacency matrix of size (tf,g).
+                    Returns the predicted TF-gene complete regulatory network as an adjacency matrix of size (tf,g)
             get_tfa : numpy array
-                    Returns the predicted transcription factor activity  as an adjacency matrix of size (tf,n).
+                    Returns the predicted transcription factor activity  as an adjacency matrix of size (tf,n)
 
             References
             -------------
@@ -136,9 +136,9 @@ class Giraffe(object):
 
     def _compute_giraffe(self):
         """
-        Giraffe optimization
-        :return: R : matrix g x tf, partial effects between tanscription factor and gene
-                 TFA : matrix tf x n, transcrption factor activity
+        Giraffe optimization.
+        :return: R : matrix g x tf, partial effects between tanscription factor and gene.
+                 TFA : matrix tf x n, transcrption factor activity.
         """
         giraffe_model = Model(np.random.random((self._motif.shape[1], self._expression.shape[1])), self._motif)
         optim = torch.optim.Adam(giraffe_model.parameters(), lr=self._lr)  # We run Adam to optimize f(R, TFA)

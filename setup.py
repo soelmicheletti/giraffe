@@ -17,6 +17,7 @@ setup(
                       "netZooPy>=0.8.1",
                       "numpy>=1.19.2",
                       "pandas>=1.4.4",
+                      "plotly>=5.10",
                       "sklearn>=0.0",
                       "torch>=1.1"],
 )

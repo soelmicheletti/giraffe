@@ -2,7 +2,10 @@ import matplotlib.pyplot as plt
 from netZooPy.panda import Panda
 import numpy as np
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 from sklearn.metrics import roc_curve, auc
+
 
 def check_symmetric(ppi):
     """
@@ -18,12 +21,13 @@ def check_symmetric(ppi):
         raise Exception(
             "PPI matrix must have ones on the diagonal. "
         )
-    if np.any(np.abs(ppi-ppi.T) > 1e-8):
+    if np.any(np.abs(ppi - ppi.T) > 1e-8):
         raise Exception(
             "PPI matrix must be symmetrical. "
         )
 
-def compute_panda_locally(expression, motif, ppi, path = "tmp"):
+
+def compute_panda_locally(expression, motif, ppi, path="tmp"):
     """
     Computes PANDA using the code from netZooPy. Note that for large datasets, this be slow or run out of memory.
     If necessary, consider moving to a cluster and using the command line interface, see
@@ -45,6 +49,7 @@ def compute_panda_locally(expression, motif, ppi, path = "tmp"):
     )
     panda_obj.save_panda_results(path + "/panda_res.txt")
     return transform_panda_output(path + "/panda_res.txt", ppi.shape[0], expression.shape[0])
+
 
 def evaluate_regulation_auroc(ground_truth, pred):
     """
@@ -68,14 +73,17 @@ def plot_auroc(ground_truth, pred, model_names=None, title="AUROC"):
     :param pred: list of arrays containing the predicted probability that corresponding entry in ground-truth is one.
     :param model_names: names of the models used to obtain the predictions. Must have the same length as pred.
     :param title: Title of the plotted AUROC.
+    :return: list of AUROC scores
     """
     if model_names is not None:
         if len(pred) != len(model_names):
             raise Exception(
                 "Model names must have the same length as the number of provided models in the prediction vector. "
             )
+        scores = []
         for i, model_predictions in enumerate(pred):
             auc, tpr, fpr = evaluate_regulation_auroc(ground_truth, model_predictions)
+            scores.append(auc)
             if model_names is None:
                 plt.plot(fpr, tpr)
             else:
@@ -86,6 +94,47 @@ def plot_auroc(ground_truth, pred, model_names=None, title="AUROC"):
         plt.ylabel('True positive rate')
         plt.title(title)
         plt.show()
+        return scores
+
+
+def star_plot(scores, metrics_names, model_names):
+    """
+    Star plot to compare score of multiple models across multiple metrics.
+    Consider mod different models and met different metrics
+
+    :param scores: numpy array of dimension mod x met. Each entry is the corresponding sccore for the given model/ metric.
+    :param metrics_names: numpy array of dimension met with a description of the given metric.
+    :param model_names: list of length mod with the names of the models to be compared.
+    """
+    if len(scores) != len(model_names):
+        raise Exception(
+            "The number of models provided in the score array must be equal to the length ot the list of model names!"
+        )
+    fig = go.Figure()
+
+    for idx, score in enumerate(scores):
+        if len(score) != len(metrics_names):
+            raise Exception(
+                "Number of provided scores for " + str(model_names[idx]) + " wrong. Please provide " + len(
+                    metrics_names) + " scores."
+            )
+        fig.add_trace(go.Scatterpolar(
+            r=score,
+            theta=metrics_names,
+            fill='toself',
+            name=model_names[idx]
+        ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True
+            )
+        ),
+        template='plotly_dark',
+        showlegend=True
+    )
+    fig.show()
 
 
 def transform_motif_for_panda(motif, path):
@@ -102,12 +151,13 @@ def transform_motif_for_panda(motif, path):
     for i in range(motif.shape[0]):
         for j in range(motif.shape[1]):
             if motif[i, j] == 1:
-                W["source"][idx] = j
-                W["target"][idx] = i
+                W["source"][idx] = i
+                W["target"][idx] = j
                 W["weight"][idx] = 1
                 idx += 1
     W.to_csv(path, sep="\t", header=None, index=None)
     return path
+
 
 def transform_panda_output(path, tf, g):
     """
@@ -118,7 +168,7 @@ def transform_panda_output(path, tf, g):
     :param g: for convenience.
     :return: numpy matrix of size g x tf.
     """
-    regulation = pd.read_csv(path, header=None, sep = " ")
+    regulation = pd.read_csv(path, header=None, sep=" ")
     R_panda = pd.DataFrame(np.zeros((g, tf)))
     for i in range(regulation.shape[0]):
         tf = regulation[0][i]
@@ -126,6 +176,7 @@ def transform_panda_output(path, tf, g):
         if tf in R_panda.index and target in R_panda.columns:
             R_panda[target][tf] = regulation[3][i]
     return R_panda.to_numpy()
+
 
 def transform_ppi_for_panda(ppi, path):
     """

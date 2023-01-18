@@ -158,6 +158,23 @@ def transform_motif_for_panda(motif, path):
     W.to_csv(path, sep="\t", header=None, index=None)
     return path
 
+def transform_motif_to_matrix(motif, path):
+    """
+    Transforms pandas dataframe containing edge list of motif into adjacency matrix of size
+
+    :param motif: pandas Dataframe with three columns: tf - target - {0, 1}.
+    :param path: path to store the motif in matrix format.
+    :return: The path where the .txt file has been successfully stored.
+    """
+    W = pd.DataFrame(0, index=list(set(motif[0])), columns=list(set(motif[1])))
+
+    for i in range(motif.shape[0]):
+        tf = motif[0][i]
+        target = motif[1][i]
+        if motif[2][i] == 1:
+            W[target][tf] = 1
+    W.T.to_csv(path)
+    return path
 
 def transform_panda_output(path, tf, g):
     """

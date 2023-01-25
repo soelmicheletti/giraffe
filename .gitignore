@@ -2,3 +2,6 @@ __pycache__
 *.egg-info/
 .idea/
 .ipynb_checkpoints
+notebooks/data/lung/raw/expression.csv
+notebooks/tmp/panda_res.txt
+notebooks/data/lung/raw/chip_seq.csv

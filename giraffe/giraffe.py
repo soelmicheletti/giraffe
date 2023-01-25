@@ -126,6 +126,7 @@ class Giraffe(object):
         if self._adjusting is not None:
             self._adjusting = torch.Tensor(self._adjusting)
             self._adjusting /= torch.norm(torch.Tensor(self._adjusting))  # Normalize
+            self._adjusting = self._adjusting.flatten()
 
         # Normalize motif and PPI
         self._motif = motif / np.sqrt(np.trace(motif.T @ motif))
@@ -177,7 +178,7 @@ class Model(nn.Module):
         super().__init__()
         self.TFA = nn.Parameter(torch.Tensor(tfa_prior))
         self.R = nn.Parameter(torch.Tensor(motif))
-        self.coefs = nn.Parameter(torch.Tensor(torch.ones(motif.shape[0])))
+        self.coefs = nn.Parameter(torch.Tensor(447 * 16470 * torch.ones((motif.shape[0], 1))))
 
     def forward(
             self,
@@ -193,6 +194,14 @@ class Model(nn.Module):
             L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
             L4 = torch.norm(torch.matmul(torch.abs(self.TFA), torch.t(torch.abs(self.TFA))) - PPI) ** 2
             L5 = torch.norm(self.R) ** 2
+            weights = self._get_weights(lam, L1, L2, L3)
+            return weights[0] * L1 + weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5
+        else :
+            L1 = torch.norm(Y - torch.matmul(torch.hstack([self.R, self.coefs]), torch.vstack([torch.abs(self.TFA), adjusting]))) ** 2
+            L2 = torch.norm(torch.matmul(torch.t(self.R), self.R) - PPI) ** 2
+            L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
+            L4 = torch.norm(torch.matmul(torch.abs(self.TFA), torch.t(torch.abs(self.TFA))) - PPI) ** 2
+            L5 = torch.norm(torch.hstack([self.R, self.coefs])) ** 2
             weights = self._get_weights(lam, L1, L2, L3)
             return weights[0] * L1 + weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5
 

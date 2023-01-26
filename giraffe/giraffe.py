@@ -132,6 +132,8 @@ class Giraffe(object):
         self._motif = motif / np.sqrt(np.trace(motif.T @ motif))
         self._ppi = self._ppi / np.trace(self._ppi)
         # Compute co-expression matrix
+        if (np.cov(self._expression).diagonal() == 0).any():
+            self._expression += 1e-8
         self._C = np.corrcoef(self._expression)
         self._C /= np.trace(self._C)
 

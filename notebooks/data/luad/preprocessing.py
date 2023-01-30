@@ -4,7 +4,7 @@ def get_preliminary():
     ppi_list = pd.read_csv("data/luad/raw/ppi_list_of_edges.csv", index_col=0)
     tf = list(set(ppi_list['V1']))
     exp = pd.read_csv("data/luad/raw/male_lung.csv", index_col=0)
-    genes = list(set(exp.index))
+    genes = exp.index
     return tf, genes
 
 def motif_to_matrix(motif, tf, genes):
@@ -13,7 +13,7 @@ def motif_to_matrix(motif, tf, genes):
     print(motif_list.shape)
     motif_matrix = pd.DataFrame(0, index = genes, columns = tf)
     for i in range(motif_list.shape[0]):
-        if i % 10000 == 0:
+        if i % 200000 == 0:
             print(i)
         source = motif_list.iloc[i]['V1']
         target = motif_list.iloc[i]['V2']
@@ -23,9 +23,8 @@ def motif_to_matrix(motif, tf, genes):
     motif_matrix.to_csv(motif[1])
 
 
-def ppi_to_matrix():
+def ppi_to_matrix(tf):
     ppi_list = pd.read_csv("data/luad/raw/ppi_list_of_edges.csv", index_col=0)
-    tf = set(ppi_list['V1'])
     ppi = pd.DataFrame(0, index=list(tf), columns=list(tf))
     for i in range(ppi_list.shape[0]):
         u = ppi_list.iloc[i]['V1']
@@ -39,9 +38,9 @@ def ppi_to_matrix():
 
 def generate_data():
     tf, genes = get_preliminary()
-    #ppi_to_matrix()
-    #motifs = [("data/luad/raw/motif_list_of_edges_female.csv", "data/luad/motif_female.txt"),
-    #          ("data/luad/raw/motif_list_of_edges_male.csv", "data/luad/motif_male.txt")
-    #           ]
-    #for motif in motifs:
-    #    motif_to_matrix(motif, tf, genes)
+    ppi_to_matrix(tf)
+    motifs = [("data/luad/raw/motif_list_of_edges_female.csv", "data/luad/motif_female.txt"),
+              ("data/luad/raw/motif_list_of_edges_male.csv", "data/luad/motif_male.txt")
+               ]
+    for motif in motifs:
+        motif_to_matrix(motif, tf, genes)

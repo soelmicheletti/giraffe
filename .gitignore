@@ -22,4 +22,6 @@ notebooks/data/luad/raw/motif_list_of_edges_male.csv
 notebooks/data/luad/raw/ppi_list_of_edges.csv
 notebooks/data/lung/panda_res.txt
 notebooks/data/lung/raw/adjusted.csv
+notebooks/data/luad/otter_male.csv
+notebooks/data/luad/otter_female.csv
 

@@ -4,6 +4,8 @@ output: html_document
 date: "2023-01-25"
 ---
 
+We start by loading some necessary stuff to run the notebook. 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -15,6 +17,7 @@ library(reticulate)
 system("pip install .")
 library(fgsea)
 library(ggplot2)
+library(netZooR)
 ```
 
 ```{python}
@@ -23,7 +26,9 @@ import numpy as np
 import pandas as pd
 from data.luad import preprocessing
 ```
-  
+
+And the data to run our models. 
+
 ```{python}
 ppi = pd.read_csv("data/luad/ppi.txt", index_col = 0)
 print(ppi.shape)
@@ -46,108 +51,200 @@ print(expression_male_lung.shape)
 expression_male_luad = pd.read_csv("data/luad/raw/male_luad.csv", index_col = 0)
 print(expression_male_luad.shape)
 ```
+And the function to visualize the results. 
 
-```{python}
-preprocessing = True
+```{r}
+analysis <- function(diff){
+  pathways <- gmtPathways("data/luad/raw/kegg.gmt")
+  fgseaRes <- fgsea(pathways, diff, minSize=15, maxSize=500, nperm=10000)
+  sig <- fgseaRes[fgseaRes$padj < 0.1,]
+  sig$pathway[sig$NES > 0][1:10]
+  sig$pathway[sig$NES < 0][1:10]
+  dat <- data.frame(fgseaRes)
+  # Settings
+  fdrcut <- 0.05 # FDR cut-off to use as output for significant signatures
+  dencol_neg <- "blue" # bubble plot color for negative ES
+  dencol_pos <- "red" # bubble plot color for positive ES
+  signnamelength <- 4 # set to remove prefix from signature names (2 for "GO", 4 for "KEGG", 8 for "REACTOME")
+  asp <- 3 # aspect ratio of bubble plot
+  charcut <- 100 # cut signature name in heatmap to this nr of characters
+  # Make signature names more readable
+  a <- as.character(dat$pathway) # 'a' is a great variable name to substitute row names with something more readable
+  for (j in 1:length(a)){
+    a[j] <- substr(a[j], signnamelength+2, nchar(a[j]))
+  }
+  a <- tolower(a) # convert to lower case (you may want to comment this out, it really depends on what signatures you are looking at, c6 signatures contain   gene names, and converting those to lower case may be confusing)
+  for (j in 1:length(a)){
+    if(nchar(a[j])>charcut) { a[j] <- paste(substr(a[j], 1, charcut), "...", sep=" ")}
+  } # cut signature names that have more characters than charcut, and add "..."
+  a <- gsub("_", " ", a)
+  dat$NAME <- a
+  # Determine what signatures to plot (based on FDR cut)
+  dat2 <- dat[dat[,"padj"]<fdrcut,]
+  dat2 <- dat2[order(dat2[,"padj"]),] 
+  dat2$signature <- factor(dat2$NAME, rev(as.character(dat2$NAME)))
+  # Determine what labels to color
+  sign_neg <- which(dat2[,"NES"]<0)
+  sign_pos <- which(dat2[,"NES"]>0)
+  # Color labels
+  signcol <- rep(NA, length(dat2$signature))
+  signcol[sign_neg] <- dencol_neg # text color of negative signatures
+  signcol[sign_pos] <- dencol_pos # text color of positive signatures
+  signcol <- rev(signcol) # need to revert vector of colors, because ggplot starts plotting these from below
+  # Plot bubble plot
+  g<-ggplot(dat2, aes(x=padj,y=signature,size=size))
+  g+geom_point(aes(fill=NES), shape=21, colour="white")+
+    theme_bw()+ # white background, needs to be placed before the "signcol" line
+    xlim(0,fdrcut)+
+    scale_size_area(max_size=10,guide="none")+
+    scale_fill_gradient2(low=dencol_neg, high=dencol_pos)+
+    theme(axis.text.y = element_text(colour=signcol))+
+    theme(aspect.ratio=asp, axis.title.y=element_blank()) # test aspect.ratio
+}
 ```
 
+By default we load precomputed data. Set this variable to false if you want to rerun all the methods. 
+
 ```{python}
-if not preprocessing:
-  reg = giraffe.Giraffe(expression_male_lung.to_numpy(), motif_male.to_numpy(), ppi.to_numpy(), iterations = 1).get_regulation()
+cache = True
+```
+
+We begin with OTTER. 
+
+```{python}
+if not cache:
+  otter_male_lung = otter(motif_male.to_numpy().T, ppi.to_numpy(), np.corrcoef(expression_male_lung.to_numpy()))
+  otter_female_lung = otter(motif_female.to_numpy().T, ppi.to_numpy(), np.corrcoef(expression_female_lung.to_numpy()))
+  otter_male_luad = otter(motif_male.to_numpy().T, ppi.to_numpy(), np.corrcoef(expression_male_luad.to_numpy()))
+  otter_female_luad = otter(motif_female.to_numpy().T, ppi.to_numpy(), np.corrcoef(expression_female_luad.to_numpy()))
+else:
+  otter_male_lung = pd.read_csv("data/luad/otter_male_lung.csv", index_col = 0)
+  otter_female_lung = pd.read_csv("data/luad/otter_female_lung.csv", index_col = 0)
+  otter_male_luad = pd.read_csv("data/luad/otter_male_luad.csv", index_col = 0)
+  otter_female_luad = pd.read_csv("data/luad/otter_female_luad.csv", index_col = 0)
+```
+
+```{r}
+annot <- read.delim("data/luad/raw/gencode_annotation_v22_complete.txt", stringsAsFactors=F)
+y_genes <- annot$gene_name[which(annot$chr == 'Y')]
+  
+male_lung <- py$otter_male_lung
+a  <- colnames(male_lung)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(male_lung) <-  geneId
+
+male_luad <- py$otter_male_luad
+a  <- colnames(male_luad)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(male_luad) <-  geneId
+
+female_lung <- py$otter_female_lung
+a  <- colnames(female_lung)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(female_lung) <-  geneId
+
+female_luad <- py$otter_female_luad
+a  <- colnames(female_luad)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(female_luad) <-  geneId
+
+genetar_male_lung <- colSums(male_lung)
+genetar_male_luad <- colSums(male_luad)
+genetar_female_lung <- colSums(female_lung)
+genetar_female_luad <- colSums(female_luad)
+
+genetar_dif_lung <- genetar_female_lung - genetar_male_lung
+genetar_dif_lung <- genetar_dif_lung[-which(names(genetar_dif_lung) %in% y_genes)]
+genetar_dif_luad <- genetar_female_luad - genetar_male_luad
+genetar_dif_luad <- genetar_dif_luad[-which(names(genetar_dif_luad) %in% y_genes)]
+```
+
+```{r}
+analysis(genetar_dif_lung)
+```
+
+```{r}
+analysis(genetar_dif_luad)
+```
+
+And we continue with GIRAFFE. 
+```{python}
+if not cache:
+  reg = giraffe.Giraffe(expression_male_lung.to_numpy(), motif_male.to_numpy(), ppi.to_numpy()).get_regulation()
   giraffe_male_lung = pd.DataFrame(reg.T, index = motif_male.columns, columns = expression_male_lung.index)
 else:
   giraffe_male_lung = pd.read_csv("data/luad/giraffe_male_lung.csv", index_col = 0)
 ```
 
 ```{python}
-if not preprocessing:
-  reg = giraffe.Giraffe(expression_male_luad.to_numpy(), motif_male.to_numpy(), ppi.to_numpy(), iterations = 20).get_regulation()
+if not cache:
+  reg = giraffe.Giraffe(expression_male_luad.to_numpy(), motif_male.to_numpy(), ppi.to_numpy()).get_regulation()
   giraffe_male_luad = pd.DataFrame(reg.T, index = motif_male.columns, columns = expression_male_luad.index)
 else:
   giraffe_male_luad = pd.read_csv("data/luad/giraffe_male_luad.csv", index_col = 0)
 ```
 
 ```{python}
-if not preprocessing:
-  reg = giraffe.Giraffe(expression_female_lung.to_numpy(), motif_female.to_numpy(), ppi.to_numpy(), iterations = 20).get_regulation()
+if not cache:
+  reg = giraffe.Giraffe(expression_female_lung.to_numpy(), motif_female.to_numpy(), ppi.to_numpy()).get_regulation()
   giraffe_female_lung = pd.DataFrame(reg.T, index = motif_female.columns, columns = expression_female_lung.index)
 else:
   giraffe_female_lung = pd.read_csv("data/luad/giraffe_female_lung.csv", index_col = 0)
 ```
 
 ```{python}
-if not preprocessing:
-  reg = giraffe.Giraffe(expression_female_luad.to_numpy(), motif_female.to_numpy(), ppi.to_numpy(), iterations = 20).get_regulation()
+if not cache:
+  reg = giraffe.Giraffe(expression_female_luad.to_numpy(), motif_female.to_numpy(), ppi.to_numpy()).get_regulation()
   giraffe_female_luad = pd.DataFrame(reg.T, index = motif_female.columns, columns = expression_female_luad.index)
 else :
   giraffe_female_luad = pd.read_csv("data/luad/giraffe_female_luad.csv", index_col = 0)
 ```
 
 ```{r}
-tftar_male_lung <- rowSums(py$giraffe_male_lung)
-genetar_male_lung <- colSums(py$giraffe_male_lung)
+annot <- read.delim("data/luad/raw/gencode_annotation_v22_complete.txt", stringsAsFactors=F)
+y_genes <- annot$gene_name[which(annot$chr == 'Y')]
+  
+male_lung <- py$giraffe_male_lung
+a  <- colnames(male_lung)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(male_lung) <-  geneId
 
-tftar_male_luad <- rowSums(py$giraffe_male_luad)
-genetar_male_luad <- colSums(py$giraffe_male_luad)
+male_luad <- py$giraffe_male_luad
+a  <- colnames(male_luad)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(male_luad) <-  geneId
 
-tftar_female_lung <- rowSums(py$giraffe_female_lung)
-genetar_female_lung <- colSums(py$giraffe_female_lung)
+female_lung <- py$giraffe_female_lung
+a  <- colnames(female_lung)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(female_lung) <-  geneId
 
-tftar_female_luad <- rowSums(py$giraffe_female_luad)
-genetar_female_luad <- colSums(py$giraffe_female_luad)
-```
+female_luad <- py$giraffe_female_luad
+a  <- colnames(female_luad)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(female_luad) <-  geneId
 
-```{r}
-tfttar_dif_lung  <- tftar_female_lung - tftar_male_lung
+genetar_male_lung <- colSums(male_lung)
+genetar_male_luad <- colSums(male_luad)
+genetar_female_lung <- colSums(female_lung)
+genetar_female_luad <- colSums(female_luad)
+
 genetar_dif_lung <- genetar_female_lung - genetar_male_lung
-tfttar_dif_luad  <- tftar_female_luad - tftar_male_luad
+genetar_dif_lung <- genetar_dif_lung[-which(names(genetar_dif_lung) %in% y_genes)]
 genetar_dif_luad <- genetar_female_luad - genetar_male_luad
+genetar_dif_luad <- genetar_dif_luad[-which(names(genetar_dif_luad) %in% y_genes)]
 ```
 
 ```{r}
-pathways <- gmtPathways("data/luad/raw/kegg.gmt")
-fgseaRes <- fgsea(pathways, genetar_male_lung - genetar_male_luad, minSize=15, maxSize=500, nperm=10000)
-sig <- fgseaRes[fgseaRes$padj < 0.05,]
-sig$pathway[sig$NES > 0][1:10]
-sig$pathway[sig$NES < 0][1:10]
-dat <- data.frame(fgseaRes)
-# Settings
-fdrcut <- 0.05 # FDR cut-off to use as output for significant signatures
-dencol_neg <- "blue" # bubble plot color for negative ES
-dencol_pos <- "red" # bubble plot color for positive ES
-signnamelength <- 4 # set to remove prefix from signature names (2 for "GO", 4 for "KEGG", 8 for "REACTOME")
-asp <- 3 # aspect ratio of bubble plot
-charcut <- 100 # cut signature name in heatmap to this nr of characters
-# Make signature names more readable
-a <- as.character(dat$pathway) # 'a' is a great variable name to substitute row names with something more readable
-for (j in 1:length(a)){
-  a[j] <- substr(a[j], signnamelength+2, nchar(a[j]))
-}
-a <- tolower(a) # convert to lower case (you may want to comment this out, it really depends on what signatures you are looking at, c6 signatures contain gene names, and converting those to lower case may be confusing)
-for (j in 1:length(a)){
-  if(nchar(a[j])>charcut) { a[j] <- paste(substr(a[j], 1, charcut), "...", sep=" ")}
-} # cut signature names that have more characters than charcut, and add "..."
-a <- gsub("_", " ", a)
-dat$NAME <- a
-# Determine what signatures to plot (based on FDR cut)
-dat2 <- dat[dat[,"padj"]<fdrcut,]
-dat2 <- dat2[order(dat2[,"padj"]),] 
-dat2$signature <- factor(dat2$NAME, rev(as.character(dat2$NAME)))
-# Determine what labels to color
-sign_neg <- which(dat2[,"NES"]<0)
-sign_pos <- which(dat2[,"NES"]>0)
-# Color labels
-signcol <- rep(NA, length(dat2$signature))
-signcol[sign_neg] <- dencol_neg # text color of negative signatures
-signcol[sign_pos] <- dencol_pos # text color of positive signatures
-signcol <- rev(signcol) # need to revert vector of colors, because ggplot starts plotting these from below
-# Plot bubble plot
-g<-ggplot(dat2, aes(x=padj,y=signature,size=size))
-g+geom_point(aes(fill=NES), shape=21, colour="white")+
-  theme_bw()+ # white background, needs to be placed before the "signcol" line
-  xlim(0,fdrcut)+
-  scale_size_area(max_size=10,guide="none")+
-  scale_fill_gradient2(low=dencol_neg, high=dencol_pos)+
-  theme(axis.text.y = element_text(colour=signcol))+
-  theme(aspect.ratio=asp, axis.title.y=element_blank()) # test aspect.ratio
+P <-c('JUN','STAT3','TFG','STAT1','HGF','BIRC5','FN1','BIRC3','IGF1','XIAP','PML','JUP','HHIP','IGF1R','FZD1','FZD4','GSTP1','FZD6','FZD7','FZD8','LEF1','FZD9','MSH6','PGF','CTBP2','CTBP1','WNT9B','PTK2','WNT9A','PTGS2','HIF1A','FLT3','FLT3LG','ABL1','WNT2B','JAK1','WNT11','AKT1','WNT10B','AKT2','LAMC2','SMO','NRAS','LAMB2','ARNT','TPR','LAMB3','AXIN1','LAMC1','AXIN2','STAT5B','STAT5A','LAMA4','LAMA5','NFKB2','LAMB1','NFKB1','CTNNA1','NFKBIA','TPM3','MYC','PIK3R5','CSF1R','SHH','LAMB4','CCDC6','NCOA4','KRAS','CSF2RA','TRAF6','TGFB2','TRAF5','TRAF3','TGFB1','TRAF2','RBX1','TGFBR2','TRAF1','TGFBR1','HSP90B1','MET','TGFB3','RALB','RALA','FOXO1','CSF3R','BIRC2','APC','SUFU','PIAS4','LAMC3','CBLC','WNT16','PLCG1','PLCG2','PLD1','BCR','PAX8','CASP9','MAX','CASP8','RARB','FGF9','RARA','FGF8','FGF7','FGF6','FGF5','MTOR','FGF3','FGF4','KITLG','FGF1','PTCH2','FGF2','FGF21','BAD','MAPK9','MAPK10','WNT3A','MAP2K2','MECOM','NOS2','BAX','MAP2K1','FGFR2','FZD3','KIT','RB1','CASP3','FGFR3','PIAS2','FGFR1','FGF14','FGF17','FGF16','FGF10','CUL2','GRB2','FGF11','FGF12','WNT10A','FGF13','WNT4','SMAD3','ETS1','SMAD4','SMAD2','RUNX1','IKBKG','HRAS','WNT1','RUNX1T1','WNT7A','CBLB','WNT7B','CBL','WNT8A','WNT8B','WNT2','CTNNA2','FGF23','WNT3','RASSF5','WNT5A','WNT6','CTNNB1','CCNA1','FGF18','STK4','STK36','FZD10','FZD5','PTEN','PIK3R3','TCF7L1','RALGDS','PTCH1','MITF','CTNNA3','FOS','LAMA1','PIAS3','NKX3-1','ITGA3','APC2','ITGA2B','CREBBP','COL4A6','PDGFRB','MMP2','BRCA2','COL4A1','MMP1','BRAF','COL4A2','MMP9','MLH1','COL4A4','SPI1','IKBKB','MDM2','ARNT2','ITGAV','ITGB1','AKT3','EGLN2','DAPK3','EGLN3','DAPK1','PIAS1','FGF20','RELA','APPL1','FH','VEGFA','HSP90AA1','VEGFC','VEGFB','WNT5B','CCND1','TRAF4','BCL2','PDGFA','FGF22','PDGFB','BCL2L1','PDGFRA','MSH2','VHL','VEGFD','RALBP1','HSP90AB1','MSH3','CRK','CYCS','CRKL','CCNE1','DCC','CDC42','CDH1','SOS2','E2F1','CHUK','ZBTB16','RAF1','PRKCB','PRKCA','SLC2A1','CEBPA','FADD','RHOA','RAD51','ELOC','PRKCG','ELOB','CXCL8','RAC2','DVL3','ERBB2','DVL2','BID','TGFA','RAC3','RXRB','RXRG','RXRA','RASSF1','DVL1','SKP2','RET','MAPK3','TCF7','DAPK2','FGF19','RAC1','SOS1','TCF7L2','MAPK1','MAPK8','EGFR','EP300','EPAS1','GSK3B','CDKN2A','CDKN1B','CDKN1A','EGF','LAMA3','LAMA2','CDKN2B','ARAF','AR','ITGA6','ITGA2','GLI1','EGLN1','CDK2','BMP4','CDK4','BMP2','GLI2','PPARG','GLI3','PPARD','TP53','E2F3','E2F2','PIK3CA','PIK3CB','CCNE2','CDK6','FAS','KLK3','PIK3CD','FASLG','FZD2','HDAC1','HDAC2','PIK3CG','CKS1B','IL6','NTRK1','PIK3R1','PIK3R2')
+sum((genetar_female_luad[P] > 0) != (genetar_male_luad[P] > 0), na.rm = TRUE)
+```
+
+```{r}
+analysis(genetar_dif_lung)
+```
+
+
+```{r}
+analysis(genetar_dif_luad)
 ```

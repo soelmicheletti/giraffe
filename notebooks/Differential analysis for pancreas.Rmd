@@ -1,0 +1,180 @@
+---
+title: "Sex differences on lung cancer"
+output: html_document
+date: "2023-01-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("/home/soel/giraffe")
+library(reticulate)
+#system("pip install scikit-learn")
+system("pip install .")
+library(fgsea)
+library(ggplot2)
+library(netZooR)
+```
+
+```{python}
+import giraffe
+import numpy as np
+import pandas as pd
+from data.luad import preprocessing
+```
+  
+```{python}
+ppi = pd.read_csv("data/pancreas/ppi.csv", index_col = 0)
+print(ppi.shape)
+
+motif = pd.read_csv("data/pancreas/motif.txt", index_col = 0)
+print(motif.shape)
+
+gtex = pd.read_csv("data/pancreas/raw/xprs_panc_gtex_snail.tsv", sep = '\t', index_col = 0)
+tcga = pd.read_csv("data/pancreas/raw/xprs_panc_tcga_snail.tsv", sep = '\t', index_col = 0)
+genes = [gene[0:15] for gene in gtex.index]
+gtex = pd.DataFrame(gtex.to_numpy(), index = genes, columns = gtex.columns)
+tcga = pd.DataFrame(tcga.to_numpy(), index = genes, columns = tcga.columns)
+print(gtex.shape)
+print(tcga.shape)
+```
+
+First the function to produce bubble plot. 
+
+
+```{r}
+analysis <- function(diff){
+  pathways <- gmtPathways("data/luad/raw/kegg.gmt")
+  fgseaRes <- fgsea(pathways, diff, minSize=15, maxSize=500, nperm=10000)
+  sig <- fgseaRes[fgseaRes$padj < 0.05,]
+  sig$pathway[sig$NES > 0][1:10]
+  sig$pathway[sig$NES < 0][1:10]
+  dat <- data.frame(fgseaRes)
+  # Settings
+  fdrcut <- 0.01 # FDR cut-off to use as output for significant signatures
+  dencol_neg <- "blue" # bubble plot color for negative ES
+  dencol_pos <- "red" # bubble plot color for positive ES
+  signnamelength <- 4 # set to remove prefix from signature names (2 for "GO", 4 for "KEGG", 8 for "REACTOME")
+  asp <- 3 # aspect ratio of bubble plot
+  charcut <- 100 # cut signature name in heatmap to this nr of characters
+  # Make signature names more readable
+  a <- as.character(dat$pathway) # 'a' is a great variable name to substitute row names with something more readable
+  for (j in 1:length(a)){
+    a[j] <- substr(a[j], signnamelength+2, nchar(a[j]))
+  }
+  a <- tolower(a) # convert to lower case (you may want to comment this out, it really depends on what signatures you are looking at, c6 signatures contain   gene names, and converting those to lower case may be confusing)
+  for (j in 1:length(a)){
+    if(nchar(a[j])>charcut) { a[j] <- paste(substr(a[j], 1, charcut), "...", sep=" ")}
+  } # cut signature names that have more characters than charcut, and add "..."
+  a <- gsub("_", " ", a)
+  dat$NAME <- a
+  # Determine what signatures to plot (based on FDR cut)
+  dat2 <- dat[dat[,"padj"]<fdrcut,]
+  dat2 <- dat2[order(dat2[,"padj"]),] 
+  dat2$signature <- factor(dat2$NAME, rev(as.character(dat2$NAME)))
+  # Determine what labels to color
+  sign_neg <- which(dat2[,"NES"]<0)
+  sign_pos <- which(dat2[,"NES"]>0)
+  # Color labels
+  signcol <- rep(NA, length(dat2$signature))
+  signcol[sign_neg] <- dencol_neg # text color of negative signatures
+  signcol[sign_pos] <- dencol_pos # text color of positive signatures
+  signcol <- rev(signcol) # need to revert vector of colors, because ggplot starts plotting these from below
+  # Plot bubble plot
+  g<-ggplot(dat2, aes(x=padj,y=signature,size=size))
+  g+geom_point(aes(fill=NES), shape=21, colour="white")+
+    theme_bw()+ # white background, needs to be placed before the "signcol" line
+    xlim(0,fdrcut)+
+    scale_size_area(max_size=10,guide="none")+
+    scale_fill_gradient2(low=dencol_neg, high=dencol_pos)+
+    theme(axis.text.y = element_text(colour=signcol))+
+    theme(aspect.ratio=asp, axis.title.y=element_blank()) # test aspect.ratio
+}
+```
+
+Now we are ready to start with OTTER. 
+
+```{python}
+cache = True
+```
+
+```{python}
+if cache:
+  otter_tcga = pd.read_csv("data/pancreas/tcga_otter.csv", index_col = 0)
+  otter_gtex = pd.read_csv("data/pancreas/gtex_otter.csv", index_col = 0)
+else:
+  otter_tcga = pd.DataFrame(otter(motif,to_numpy().T, ppi, np.corrcoef(tcga)), 
+                            index = motif.columns, 
+                            columns = tcga.index
+                          )
+  otter_gtex = pd.DataFrame(otter(motif_to_numpy().T, ppi.np.corrcoef(gtex)),
+                            index = motif.columns, 
+                            columns = gtex.index
+                            )
+```
+
+```{r}
+annot <- read.delim("data/luad/raw/gencode_annotation_v22_complete.txt", stringsAsFactors=F)
+
+gtex_reg <- py$otter_tcga
+a  <- colnames(gtex_reg)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(gtex_reg) <-  geneId
+
+tcga_reg <- py$otter_gtex
+a  <- colnames(tcga_reg)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(tcga_reg) <-  geneId
+
+gtex_score <- colSums(gtex_reg)
+tcga_score <- colSums(tcga_reg)
+```
+
+```{r}
+analysis(tcga_score - gtex_score)
+```
+
+And, finally, to generate the output of GIRAFFE. 
+
+```{python}
+if not cache:
+  giraffe_gtex = giraffe.Giraffe(gtex.to_numpy(), motif.to_numpy(), ppi.to_numpy() + np.eye(ppi.shape[0]), iterations = 100).get_regulation()
+  giraffe_gtex = pd.DataFrame(giraffe_tcga, index = gtex.index, columns = motif.columns),T
+else:
+  giraffe_gtex = pd.read_csv("data/pancreas/giraffe_gtex.csv", index_col = 0).T
+```
+
+```{python}
+if not cache:
+  giraffe_tcga = giraffe.Giraffe(tcga.to_numpy(), motif.to_numpy(), ppi.to_numpy() + np.eye(ppi.shape[0]), iterations = 100).get_regulation()
+  giraffe_tcga = pd.DataFrame(giraffe_tcga, index = gtex.index, columns = motif.columns),T
+else:
+  giraffe_tcga = pd.read_csv("data/pancreas/giraffe_tcga.csv", index_col = 0).T
+```
+
+```{python}
+giraffe_tcga += 3e-7
+```
+
+```{r}
+annot <- read.delim("data/luad/raw/gencode_annotation_v22_complete.txt", stringsAsFactors=F)
+
+gtex_reg <- py$giraffe_gtex
+a  <- colnames(gtex_reg)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(gtex_reg) <-  geneId
+
+tcga_reg <- py$giraffe_tcga
+a  <- colnames(tcga_reg)
+geneId <- annot[match(a,annot$gene_id),"gene_name"]
+colnames(tcga_reg) <-  geneId
+
+gtex_score <- colSums(gtex_reg)
+tcga_score <- colSums(tcga_reg)
+```
+
+```{r}
+analysis(tcga_score - gtex_score - 0.000001)
+```

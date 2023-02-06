@@ -24,4 +24,22 @@ notebooks/data/lung/panda_res.txt
 notebooks/data/lung/raw/adjusted.csv
 notebooks/data/luad/otter_male.csv
 notebooks/data/luad/otter_female.csv
+notebooks/data/Adult_Cerebrail_Cortex/
+notebooks/data/liver/
+notebooks/data/luad/otter_female_luad.csv
+notebooks/data/luad/otter_female_lung.csv
+notebooks/data/luad/otter_male_luad.csv
+notebooks/data/luad/otter_male_lung.csv
+notebooks/data/luad/raw/gencode_annotation_v22_complete.txt
+notebooks/data/lung/raw/ETS2.csv
+notebooks/data/lung/raw/GABPA.csv
+notebooks/data/lung/raw/NFE2L2.csv
+notebooks/data/lung/raw/NFYA.csv
+notebooks/data/lung/raw/NKX2-1.csv
+notebooks/data/lung/raw/RELB.csv
+notebooks/data/lung/raw/STAT6.csv
+notebooks/data/lung/raw/TFAP2C.csv
+notebooks/data/lung/raw/TP53.csv
+notebooks/data/lung/raw/YBX1.csv
+notebooks/data/pancreas/
 

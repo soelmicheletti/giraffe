@@ -42,4 +42,5 @@ notebooks/data/lung/raw/TFAP2C.csv
 notebooks/data/lung/raw/TP53.csv
 notebooks/data/lung/raw/YBX1.csv
 notebooks/data/pancreas/
-
+notebooks/data/adult_cerebrail_cortex/
+notebooks/data/atac_seq/

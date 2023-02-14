@@ -193,7 +193,8 @@ class Model(nn.Module):
         if adjusting is None:
             L1 = torch.norm(Y - torch.matmul(self.R, torch.abs(self.TFA))) ** 2
             L2 = torch.norm(torch.matmul(torch.t(self.R), self.R) - PPI) ** 2
-            L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
+            #L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
+            L3 = torch.norm(torch.Tensor(torch.zeros((2, 2))))
             L4 = torch.norm(torch.matmul(torch.abs(self.TFA), torch.t(torch.abs(self.TFA))) - PPI) ** 2
             L5 = torch.norm(self.R) ** 2
             weights = self._get_weights(lam, L1, L2, L3)

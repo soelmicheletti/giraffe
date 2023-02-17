@@ -58,6 +58,7 @@ class Giraffe(object):
             iterations=200,
             lr=0.00001,
             lam=None,
+            save_computation = False,
             seed=42  # For reproducibility
     ) -> None:
 
@@ -73,6 +74,7 @@ class Giraffe(object):
         self._iterations = iterations
         self._lr = lr
         self._lam = lam
+        self._save_computation = save_computation
         self._R, self._TFA = self._compute_giraffe()
 
     def process_data(
@@ -152,7 +154,8 @@ class Giraffe(object):
                 torch.Tensor(self._ppi),
                 torch.Tensor(self._C),
                 self._lam,
-                self._adjusting
+                self._adjusting,
+                self._save_computation
             )  # Compute f(R, TFA)
             loss = F.mse_loss(pred, torch.norm(
                 torch.Tensor(np.zeros((3, 3))))).sqrt()  # Minimization problem: loss = ||f(R, TFA)||
@@ -188,13 +191,15 @@ class Model(nn.Module):
             PPI,
             C,
             lam,
-            adjusting
+            adjusting,
+            save_computation
     ):
         if adjusting is None:
             L1 = torch.norm(Y - torch.matmul(self.R, torch.abs(self.TFA))) ** 2
             L2 = torch.norm(torch.matmul(torch.t(self.R), self.R) - PPI) ** 2
-            #L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
             L3 = torch.norm(torch.Tensor(torch.zeros((2, 2))))
+            if not save_computation:
+                L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
             L4 = torch.norm(torch.matmul(torch.abs(self.TFA), torch.t(torch.abs(self.TFA))) - PPI) ** 2
             L5 = torch.norm(self.R) ** 2
             weights = self._get_weights(lam, L1, L2, L3)
@@ -202,7 +207,9 @@ class Model(nn.Module):
         else :
             L1 = torch.norm(Y - torch.matmul(torch.hstack([self.R, self.coefs]), torch.vstack([torch.abs(self.TFA), adjusting]))) ** 2
             L2 = torch.norm(torch.matmul(torch.t(self.R), self.R) - PPI) ** 2
-            L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
+            L3 = torch.norm(torch.Tensor(torch.zeros((2, 2))))
+            if not save_computation:
+                L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
             L4 = torch.norm(torch.matmul(torch.abs(self.TFA), torch.t(torch.abs(self.TFA))) - PPI) ** 2
             L5 = torch.norm(torch.hstack([self.R, self.coefs])) ** 2
             weights = self._get_weights(lam, L1, L2, L3)

@@ -80,7 +80,6 @@ def generate_data():
     replace_old_names(motif, "SIG1", "YER068W")
     replace_old_names(motif, "RCS1", "YGL071W")
     replace_old_names(motif, "RLR1", "YNL139C")
-    motif.to_csv("data/yeast/motif_edge_list.txt")
     save_motif_matrix(motif)
     TF = set(motif[0])
     query_ppi(TF)

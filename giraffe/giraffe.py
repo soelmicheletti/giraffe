@@ -1,8 +1,13 @@
 import random
+from sklearn.linear_model import Ridge
 import torch
 from torch import nn
 from torch.functional import F
+from typing import Callable
 from .utils import *
+
+from torch.optim import Adam
+from torch.optim.optimizer import required
 
 
 class Giraffe(object):
@@ -46,7 +51,7 @@ class Giraffe(object):
             References
             -------------
                 TODO
-                Author the code: Soel Micheletti
+                Author of the code: Soel Micheletti
         """
 
     def __init__(
@@ -55,9 +60,11 @@ class Giraffe(object):
             motif,
             ppi,
             adjusting=None,
+            regularization=0,
             iterations=200,
-            lr=0.00001,
+            lr=1e-5,
             lam=None,
+            balance_fn = None,
             save_computation = False,
             seed=42  # For reproducibility
     ) -> None:
@@ -65,6 +72,7 @@ class Giraffe(object):
         torch.manual_seed(seed)
         random.seed(seed)
         np.random.seed(seed)
+        self._save_computation = save_computation
         self.process_data(
             expression,
             motif,
@@ -73,8 +81,11 @@ class Giraffe(object):
         )
         self._iterations = iterations
         self._lr = lr
+        self._l = regularization
         self._lam = lam
-        self._save_computation = save_computation
+        self._balance_fn = balance_fn
+        if self._lam is not None and self._balance_fn is not None:
+            raise ValueError("Can't set both custom weights and custom weight learning function! Please provide only one of both options. ")
         self._R, self._TFA = self._compute_giraffe()
 
     def process_data(
@@ -106,38 +117,47 @@ class Giraffe(object):
         check_symmetric(self._ppi) # Check that ppi has legal structure.
 
         if not isinstance(self._expression, np.ndarray):
-            raise Exception(
+            raise ValueError(
                 "Error in processing expression data. Please provide a numpy array or a pandas dataframe. "
             )
         if not isinstance(self._motif, np.ndarray):
-            raise Exception(
+            raise ValueError(
                 "Error in processing motif data. Please provide a numpy array or a pandas dataframe. "
             )
         if not isinstance(self._ppi, np.ndarray):
-            raise Exception(
+            raise ValueError(
                 "Error in processing PPI data. Please provide a numpy array or a pandas dataframe. "
             )
 
-        self._adjusting = adjusting
-        if isinstance(adjusting, pd.DataFrame):
-            self._adjusting = adjusting.to_numpy()
-        if self._adjusting is not None and not isinstance(self._adjusting, np.ndarray):
-            raise Exception(
-                "Error in processing adjusting covariates. Please provide a numpy array or a pandas dataframe. "
-            )
-        if self._adjusting is not None:
-            self._adjusting = torch.Tensor(self._adjusting)
-            self._adjusting /= torch.norm(torch.Tensor(self._adjusting))  # Normalize
-            self._adjusting = self._adjusting.flatten()
+        if adjusting is None:
+            self._adjusting = None
+        else:
+            if len(adjusting.shape) == 1:
+                adjusting = adjusting.reshape(len(adjusting), 1)
+            self._adjusting = torch.Tensor(np.zeros(adjusting.shape))
+            if isinstance(adjusting, pd.DataFrame):
+                adjusting = adjusting.to_numpy()
+            if adjusting is not None and not isinstance(adjusting, np.ndarray):
+                raise ValueError(
+                    "Error in processing adjusting covariates. Please provide a numpy array or a pandas dataframe. "
+                )
+            if adjusting is not None:
+                for i in range(adjusting.shape[1]):
+                    tmp = torch.Tensor(adjusting[:, i])
+                    tmp /= torch.norm(tmp)
+                    self._adjusting[:, i] = tmp
 
         # Normalize motif and PPI
         self._motif = motif / np.sqrt(np.trace(motif.T @ motif))
         self._ppi = self._ppi / np.trace(self._ppi)
-        # Compute co-expression matrix
-        if (np.cov(self._expression).diagonal() == 0).any():
-            self._expression += 1e-8
-        self._C = np.corrcoef(self._expression)
-        self._C /= np.trace(self._C)
+
+        self._C = 0
+        if not self._save_computation:
+            # Compute co-expression matrix
+            if (np.cov(self._expression).diagonal() == 0).any():
+                self._expression += 1e-8
+            self._C = np.corrcoef(self._expression)
+            self._C /= np.trace(self._C)
 
     def _compute_giraffe(self):
         """
@@ -145,8 +165,15 @@ class Giraffe(object):
         :return: R : matrix g x tf, partial effects between tanscription factor and gene.
                  TFA : matrix tf x n, transcrption factor activity.
         """
-        giraffe_model = Model(np.random.random((self._motif.shape[1], self._expression.shape[1])), self._motif)
+
+        variables_to_adjust = 0
+        if self._adjusting is not None:
+            variables_to_adjust = self._adjusting.shape[1]
+
+        giraffe_model = Model(np.random.random((self._motif.shape[1], self._expression.shape[1])), self._motif, variables_to_adjust)
         optim = torch.optim.Adam(giraffe_model.parameters(), lr=self._lr)  # We run Adam to optimize f(R, TFA)
+        if self._l > 0:
+            optim = ProxAdam(giraffe_model.parameters(), lr=self._lr, lambda_ = self._l)
 
         for i in range(self._iterations):
             pred = giraffe_model(
@@ -154,7 +181,9 @@ class Giraffe(object):
                 torch.Tensor(self._ppi),
                 torch.Tensor(self._C),
                 self._lam,
+                self._balance_fn,
                 self._adjusting,
+                self._l,
                 self._save_computation
             )  # Compute f(R, TFA)
             loss = F.mse_loss(pred, torch.norm(
@@ -171,19 +200,24 @@ class Giraffe(object):
         return self._R
 
     def get_tfa(self):
-        return self._TFA
+        TFA_giraffe = np.zeros(self._TFA.shape)
+        for i in range(self._TFA.shape[1]):
+            TFA_giraffe[:, i] = Ridge(alpha=1.0, fit_intercept=False).fit(self._R, self._expression[:, i]).coef_
+        return TFA_giraffe
 
 
 class Model(nn.Module):
     def __init__(
             self,
             tfa_prior,
-            motif
+            motif,
+            variables_to_adjust
     ):
         super().__init__()
         self.TFA = nn.Parameter(torch.Tensor(tfa_prior))
         self.R = nn.Parameter(torch.Tensor(motif))
-        self.coefs = nn.Parameter(torch.Tensor(447 * 16470 * torch.ones((motif.shape[0], 1))))
+        self.variables_to_adjust = variables_to_adjust
+        self.coefs = nn.Parameter(torch.Tensor(torch.ones((motif.shape[0], self.variables_to_adjust))))
 
     def forward(
             self,
@@ -191,7 +225,9 @@ class Model(nn.Module):
             PPI,
             C,
             lam,
+            balance_fn,
             adjusting,
+            lambda_,
             save_computation
     ):
         if adjusting is None:
@@ -202,24 +238,53 @@ class Model(nn.Module):
                 L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
             L4 = torch.norm(torch.matmul(torch.abs(self.TFA), torch.t(torch.abs(self.TFA))) - PPI) ** 2
             L5 = torch.norm(self.R) ** 2
-            weights = self._get_weights(lam, L1, L2, L3)
-            return weights[0] * L1 + weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5
+            weights = self._get_weights(lam, balance_fn, L1, L2, L3)
+            return weights[0] * L1 + weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5 * (1 - lambda_ == 0)
         else :
-            L1 = torch.norm(Y - torch.matmul(torch.hstack([self.R, self.coefs]), torch.vstack([torch.abs(self.TFA), adjusting]))) ** 2
+            L1 = torch.norm(Y - torch.matmul(torch.hstack([self.R, self.coefs]), torch.vstack([torch.abs(self.TFA), torch.t(adjusting)]))) ** 2
             L2 = torch.norm(torch.matmul(torch.t(self.R), self.R) - PPI) ** 2
             L3 = torch.norm(torch.Tensor(torch.zeros((2, 2))))
             if not save_computation:
                 L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
-            L4 = torch.norm(torch.matmul(torch.abs(self.TFA), torch.t(torch.abs(self.TFA))) - PPI) ** 2
+            L4 = torch.norm(torch.matmul(torch.vstack([torch.abs(self.TFA), torch.t(adjusting)]), torch.t(torch.vstack([torch.abs(self.TFA), torch.t(adjusting)]))) - torch.hstack([torch.vstack([PPI, torch.Tensor(np.ones((self.variables_to_adjust, self.R.shape[1])))]), torch.Tensor(torch.ones((self.R.shape[1] + self.variables_to_adjust, self.variables_to_adjust)))])) ** 2
             L5 = torch.norm(torch.hstack([self.R, self.coefs])) ** 2
-            weights = self._get_weights(lam, L1, L2, L3)
-            return weights[0] * L1 + weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5
+            weights = self._get_weights(lam, balance_fn, L1, L2, L3)
+            return weights[0] * L1 + 3 * weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5 * (1 - lambda_ == 0)
 
-    def _get_weights(self, lam, L1, L2, L3):
+    def _get_weights(self, lam, balance_fn, L1, L2, L3):
         weights = [1, 1, 1, 1, 1]
         if lam is not None:
             weights = lam
+        elif balance_fn is not None:
+            weights = balance_fn(L1, L2, L3)
         else:
             sum = L1.item() + L2.item() + L3.item()
             weights = [1 - L1.item() / sum, 1 - L2.item() / sum, 1 - L3.item() / sum, 1, 1]
         return weights
+
+class ProxAdam(Adam):
+    def __init__(self, params, lr=required, lambda_=0):
+
+        kwargs = dict(lr=lr)
+        super().__init__(params, **kwargs)
+        self._lambda = lambda_
+        proxs = [self.soft_thresholding]
+        if len(proxs) != len(self.param_groups):
+            raise ValueError("Invalid length of argument proxs: {} instead of {}".format(len(proxs), len(self.param_groups)))
+
+        for group, prox in zip(self.param_groups, list(proxs)):
+            group.setdefault('prox', prox)
+
+    def step(self):
+        # perform a gradient step
+        super().step()
+
+        for group in self.param_groups:
+            prox = group['prox']
+
+            # apply the proximal operator to each parameter in a group
+            for p in group['params']:
+                p.data = prox(p.data)
+
+    def soft_thresholding(self, x):
+        return torch.sign(x) * torch.nn.functional.relu(torch.abs(x) - self._lambda)

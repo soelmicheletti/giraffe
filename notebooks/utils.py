@@ -232,3 +232,37 @@ def limma(pheno, exprs, covariate_formula, design_formula='1', rcond=1e-8):
     coefficients, res, rank, s = np.linalg.lstsq(design_batch, exprs.T, rcond=rcond)
     beta = coefficients[-design_matrix.shape[1]:]
     return exprs - design_matrix.dot(beta).T
+
+def get_sparsity_scores(R, R_hat):
+    tp = 0
+    fn = 0
+    fp = 0
+    tn = 0
+    for i in range(R.shape[0]):
+        for j in range(R.shape[1]):
+            if R[i, j] == 0:
+                if R_hat[i, j] == 0:
+                    tp += 1
+                else:
+                    fp += 1
+            else:
+                if R_hat[i, j] == 0:
+                    fn += 1
+                else:
+                    tn += 1
+    return {"TP": tp, "TN" : tn, "FP": fp, "FN":fn}
+
+def get_sign_accuracy(R, R_hat):
+    hit = 0
+    tot = 0
+    for i in range(R.shape[0]):
+        for j in range(R.shape[1]):
+            if R[i, j] > 0:
+                tot += 1
+                if R_hat[i, j] > 0:
+                    hit += 1
+            if R[i, j] < 0:
+                tot += 1
+                if R_hat[i, j] < 0:
+                    hit += 1
+    return hit / tot

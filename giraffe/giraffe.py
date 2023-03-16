@@ -183,7 +183,6 @@ class Giraffe(object):
                 self._lam,
                 self._balance_fn,
                 self._adjusting,
-                self._l,
                 self._save_computation
             )  # Compute f(R, TFA)
             loss = F.mse_loss(pred, torch.norm(
@@ -227,7 +226,6 @@ class Model(nn.Module):
             lam,
             balance_fn,
             adjusting,
-            lambda_,
             save_computation
     ):
         if adjusting is None:
@@ -239,7 +237,7 @@ class Model(nn.Module):
             L4 = torch.norm(torch.matmul(torch.abs(self.TFA), torch.t(torch.abs(self.TFA))) - PPI) ** 2
             L5 = torch.norm(self.R) ** 2
             weights = self._get_weights(lam, balance_fn, L1, L2, L3)
-            return weights[0] * L1 + weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5 * (1 - lambda_ == 0)
+            return weights[0] * L1 + weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5
         else :
             L1 = torch.norm(Y - torch.matmul(torch.hstack([self.R, self.coefs]), torch.vstack([torch.abs(self.TFA), torch.t(adjusting)]))) ** 2
             L2 = torch.norm(torch.matmul(torch.t(self.R), self.R) - PPI) ** 2
@@ -249,7 +247,7 @@ class Model(nn.Module):
             L4 = torch.norm(torch.matmul(torch.vstack([torch.abs(self.TFA), torch.t(adjusting)]), torch.t(torch.vstack([torch.abs(self.TFA), torch.t(adjusting)]))) - torch.hstack([torch.vstack([PPI, torch.Tensor(np.ones((self.variables_to_adjust, self.R.shape[1])))]), torch.Tensor(torch.ones((self.R.shape[1] + self.variables_to_adjust, self.variables_to_adjust)))])) ** 2
             L5 = torch.norm(torch.hstack([self.R, self.coefs])) ** 2
             weights = self._get_weights(lam, balance_fn, L1, L2, L3)
-            return weights[0] * L1 + 3 * weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5 * (1 - lambda_ == 0)
+            return weights[0] * L1 + 3 * weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5
 
     def _get_weights(self, lam, balance_fn, L1, L2, L3):
         weights = [1, 1, 1, 1, 1]
@@ -262,7 +260,7 @@ class Model(nn.Module):
             weights = [1 - L1.item() / sum, 1 - L2.item() / sum, 1 - L3.item() / sum, 1, 1]
         return weights
 
-class ProxAdam(Adam):
+class ProxAdam(Adam ):
     def __init__(self, params, lr=required, lambda_=0):
 
         kwargs = dict(lr=lr)

@@ -1,5 +1,5 @@
 import random
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import LinearRegression
 import torch
 from torch import nn
 from torch.functional import F
@@ -201,7 +201,7 @@ class Giraffe(object):
     def get_tfa(self):
         TFA_giraffe = np.zeros(self._TFA.shape)
         for i in range(self._TFA.shape[1]):
-            TFA_giraffe[:, i] = Ridge(alpha=1.0, fit_intercept=False).fit(self._R, self._expression[:, i]).coef_
+            TFA_giraffe[:, i] = LinearRegression(fit_intercept=False, positive=True).fit(self._R, self._expression[:, i]).coef_
         return TFA_giraffe
 
 

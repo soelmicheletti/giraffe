@@ -66,7 +66,7 @@ def evaluate_regulation_auroc(ground_truth, pred):
     return roc_aucCont, tpr, fpr
 
 
-def plot_auroc(ground_truth, pred, model_names=None, title="AUROC"):
+def plot_auroc(ground_truth, pred, model_names=None, title="AUROC", approx = True):
     """
     Plots AUROC for the various models passed in pred.
 
@@ -84,6 +84,8 @@ def plot_auroc(ground_truth, pred, model_names=None, title="AUROC"):
         scores = []
         for i, model_predictions in enumerate(pred):
             auc, tpr, fpr = evaluate_regulation_auroc(ground_truth, model_predictions)
+            if approx:
+                auc = round(auc, 3)
             scores.append(auc)
             if model_names is None:
                 plt.plot(fpr, tpr)

@@ -58,3 +58,4 @@ notebooks/data/pancreas/raw/motif.txt
 notebooks/data/pancreas/raw/xprs_panc_gtex_snail.tsv
 notebooks/data/pancreas/raw/xprs_panc_tcga_snail.tsv
 notebooks/data/pancreas/tcga_otter.csv
+notebooks/LaTeX.ipynb

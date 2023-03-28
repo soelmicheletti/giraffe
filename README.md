@@ -1,3 +1,6 @@
+<img align="center" width="80%" src="logo.png">
+
+
 # GIRAFFE: biologically informed inference of gene regulatory networks
 
 ## Install

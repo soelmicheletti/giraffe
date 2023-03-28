@@ -1,4 +1,4 @@
-<img align="center" width="80%" src="logo.png">
+<img align="center" width="100%" src="logo.png">
 
 
 # GIRAFFE: biologically informed inference of gene regulatory networks

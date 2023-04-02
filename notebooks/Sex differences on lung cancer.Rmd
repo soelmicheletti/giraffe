@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 setwd("/home/soel/giraffe")
 library(reticulate)
 #system("pip install scikit-learn")
-system("pip install .")
+#system("pip install .")
 library(fgsea)
 library(ggplot2)
 library(netZooR)
@@ -233,11 +233,6 @@ genetar_dif_lung <- genetar_female_lung - genetar_male_lung
 genetar_dif_lung <- genetar_dif_lung[-which(names(genetar_dif_lung) %in% y_genes)]
 genetar_dif_luad <- genetar_female_luad - genetar_male_luad
 genetar_dif_luad <- genetar_dif_luad[-which(names(genetar_dif_luad) %in% y_genes)]
-```
-
-```{r}
-P <-c('JUN','STAT3','TFG','STAT1','HGF','BIRC5','FN1','BIRC3','IGF1','XIAP','PML','JUP','HHIP','IGF1R','FZD1','FZD4','GSTP1','FZD6','FZD7','FZD8','LEF1','FZD9','MSH6','PGF','CTBP2','CTBP1','WNT9B','PTK2','WNT9A','PTGS2','HIF1A','FLT3','FLT3LG','ABL1','WNT2B','JAK1','WNT11','AKT1','WNT10B','AKT2','LAMC2','SMO','NRAS','LAMB2','ARNT','TPR','LAMB3','AXIN1','LAMC1','AXIN2','STAT5B','STAT5A','LAMA4','LAMA5','NFKB2','LAMB1','NFKB1','CTNNA1','NFKBIA','TPM3','MYC','PIK3R5','CSF1R','SHH','LAMB4','CCDC6','NCOA4','KRAS','CSF2RA','TRAF6','TGFB2','TRAF5','TRAF3','TGFB1','TRAF2','RBX1','TGFBR2','TRAF1','TGFBR1','HSP90B1','MET','TGFB3','RALB','RALA','FOXO1','CSF3R','BIRC2','APC','SUFU','PIAS4','LAMC3','CBLC','WNT16','PLCG1','PLCG2','PLD1','BCR','PAX8','CASP9','MAX','CASP8','RARB','FGF9','RARA','FGF8','FGF7','FGF6','FGF5','MTOR','FGF3','FGF4','KITLG','FGF1','PTCH2','FGF2','FGF21','BAD','MAPK9','MAPK10','WNT3A','MAP2K2','MECOM','NOS2','BAX','MAP2K1','FGFR2','FZD3','KIT','RB1','CASP3','FGFR3','PIAS2','FGFR1','FGF14','FGF17','FGF16','FGF10','CUL2','GRB2','FGF11','FGF12','WNT10A','FGF13','WNT4','SMAD3','ETS1','SMAD4','SMAD2','RUNX1','IKBKG','HRAS','WNT1','RUNX1T1','WNT7A','CBLB','WNT7B','CBL','WNT8A','WNT8B','WNT2','CTNNA2','FGF23','WNT3','RASSF5','WNT5A','WNT6','CTNNB1','CCNA1','FGF18','STK4','STK36','FZD10','FZD5','PTEN','PIK3R3','TCF7L1','RALGDS','PTCH1','MITF','CTNNA3','FOS','LAMA1','PIAS3','NKX3-1','ITGA3','APC2','ITGA2B','CREBBP','COL4A6','PDGFRB','MMP2','BRCA2','COL4A1','MMP1','BRAF','COL4A2','MMP9','MLH1','COL4A4','SPI1','IKBKB','MDM2','ARNT2','ITGAV','ITGB1','AKT3','EGLN2','DAPK3','EGLN3','DAPK1','PIAS1','FGF20','RELA','APPL1','FH','VEGFA','HSP90AA1','VEGFC','VEGFB','WNT5B','CCND1','TRAF4','BCL2','PDGFA','FGF22','PDGFB','BCL2L1','PDGFRA','MSH2','VHL','VEGFD','RALBP1','HSP90AB1','MSH3','CRK','CYCS','CRKL','CCNE1','DCC','CDC42','CDH1','SOS2','E2F1','CHUK','ZBTB16','RAF1','PRKCB','PRKCA','SLC2A1','CEBPA','FADD','RHOA','RAD51','ELOC','PRKCG','ELOB','CXCL8','RAC2','DVL3','ERBB2','DVL2','BID','TGFA','RAC3','RXRB','RXRG','RXRA','RASSF1','DVL1','SKP2','RET','MAPK3','TCF7','DAPK2','FGF19','RAC1','SOS1','TCF7L2','MAPK1','MAPK8','EGFR','EP300','EPAS1','GSK3B','CDKN2A','CDKN1B','CDKN1A','EGF','LAMA3','LAMA2','CDKN2B','ARAF','AR','ITGA6','ITGA2','GLI1','EGLN1','CDK2','BMP4','CDK4','BMP2','GLI2','PPARG','GLI3','PPARD','TP53','E2F3','E2F2','PIK3CA','PIK3CB','CCNE2','CDK6','FAS','KLK3','PIK3CD','FASLG','FZD2','HDAC1','HDAC2','PIK3CG','CKS1B','IL6','NTRK1','PIK3R1','PIK3R2')
-sum((genetar_female_luad[P] > 0) != (genetar_male_luad[P] > 0), na.rm = TRUE)
 ```
 
 ```{r}

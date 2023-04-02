@@ -57,7 +57,7 @@ class Giraffe(object):
     def __init__(
             self,
             expression,
-            motif,
+            prior,
             ppi,
             adjusting=None,
             regularization=0,
@@ -75,7 +75,7 @@ class Giraffe(object):
         self._save_computation = save_computation
         self.process_data(
             expression,
-            motif,
+            prior,
             ppi,
             adjusting
         )

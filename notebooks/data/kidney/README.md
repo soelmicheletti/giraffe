@@ -9,4 +9,4 @@ Raw data in `raw` have been downloaded from the following paths in [Netbooks](ht
 TF-gene priors are from CIS-BP, and PPI has been extracted from STRING. 
 
 The files `expr.csv`, `expr_t.csv` and `prior.csv` are copies of expression and prior reformatted for convenience of R scripts.
-- `R_tigress.csv` is computed via `tigress.r`. The other files are computed either by `preprocessing.py` or by the jupyter notebook using the option `cache=False`. 
+`R_tigress.csv` is computed via `tigress.r`. The other files are computed either by `preprocessing.py` or by the jupyter notebook using the option `cache=False`. 

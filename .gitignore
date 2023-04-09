@@ -63,3 +63,13 @@ notebooks/data/adult_cerebrail_cortex/daje.txt
 notebooks/data/adult_cerebrail_cortex/daje2.txt
 notebooks/data/adult_cerebrail_cortex/daje3.txt
 notebooks/data/luad/raw/gen_v26_mapping.csv
+notebooks/data/kidney/.RData
+notebooks/data/kidney/.Rhistory
+notebooks/data/kidney/R_giraffe.csv
+notebooks/data/kidney/R_otter.csv
+notebooks/data/kidney/R_panda.csv
+notebooks/data/kidney/expr.csv
+notebooks/data/kidney/expr_t.csv
+notebooks/data/kidney/motif.csv
+notebooks/data/kidney/prior_t.csv
+notebooks/data/kidney/raw/

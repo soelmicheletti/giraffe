@@ -1224,8 +1224,12 @@ tf <-  c("NFYA",
          "HNF1B", 
          "ZNF8", 
          "NR2E3")
-g <- 3000
-E <- expr[c(seq(1, g, 1)), c(seq(2, 545, 1))]
-tf_r <- tf[which(tf %in% rownames(E))]
-R <- BITFAM(E, species = 'human', tf = tf_r)
-write.csv(R, "R_bitfam.csv", row.names = TRUE)
+
+start = 1
+while(start < dim(expr)[1]){
+  E <- expr[c(seq(start, start + 3000, 1)), c(seq(2, dim(expr)[2], 1))]
+  tf_r <- tf[which(tf %in% rownames(E))]
+  R <- BITFAM(E, species = 'human', tf = tf_r)
+  write.csv(R, paste("R_bitfam_", as.character(start), ".csv", sep = ""), row.names = TRUE)
+  start = start + 3000
+}

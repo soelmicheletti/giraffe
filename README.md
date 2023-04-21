@@ -3,6 +3,15 @@
 
 # GIRAFFE: biologically informed inference of gene regulatory networks
 
+A scalable matrix factorization-based algorithm to jointly infer regulatory effects and transcription factor activities developed in the context of my [Master's Thesis](/thesis.pdf). 
+
+Consider a setting with G genes, TF proteins (transcription factors), and n samples (e.g. individual in a studies or cells). Given a gene expression matrix (matrix of dimension G x n), a prior for the regulatory network (matrix of dimension G x TF), and a protein-protein interaction network (matrix of dimension TF x TF), GIRAFFE computes:
+
+- A matrix for the transcription factor activities TFA. Each entry describes the amount of proteins available to regulate their target genes.
+- A regulatory network R of dimension G x TF. Weights can be interpreted as coefficients of a linear model that considers the transcription factor activity as covariates, and gene expression as target. 
+
+<img align="center" width="60%" src="giraffe_overview.png">
+
 ## Install
 
 Clone the repository into your local disk:
@@ -25,4 +34,13 @@ import giraffe
 
 ## Usage
 
+## Structure of the repo
+
+- ```giraffe``` contains the source code of our algorithm.
+- ```notebooks/data``` contains the data used and generated in the experiments. Note that the version on GitHub does **not** contain all the data. Please download them from [Zenodo](TODO). 
+- The jupyter notebooks in ```notebooks``` can be used to reproduce the experiments in the thesis. 
+
 ## Appreciation
+- [Alexander Marx](https://www.a-marx.com/), [Julia Vogt](https://mds.inf.ethz.ch/team/detail/julia-vogt/), and [John Quackenbush](https://www.hsph.harvard.edu/john-quackenbush/) for making this exchange possible. 
+- [Alexander Marx](https://www.a-marx.com/), [Jonas Fischer](https://scholar.google.com/citations?hl=en&user=Gfc2NA4AAAAJ), and [Panagiotis Mandros](https://www.hsph.harvard.edu/profile/panagiotis-mandros/) for their invaluable guidance throughout this project. 
+- Marouen Ben Guebila, Rebekka Burkholz, Chen Chen, Dawn DeMeo, Viola Fanfani, Intekhab Hossain, Camila Lopes-Ramos, Enakshi Saha, and Katherine Shutta for thoughtful critiques and discussions.

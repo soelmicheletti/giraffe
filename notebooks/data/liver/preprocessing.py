@@ -29,10 +29,7 @@ def get_neighbors(P) :
 def generate_data():
     motif = pd.read_csv("data/liver/raw/motif.txt", sep="\t", header=None)
     motif_filter = motif[motif[2] == 1]
-    expression = pd.read_csv("data/liver/raw/expression.gct", skiprows=2, sep='\t', index_col='Name',
-                             usecols=lambda x: x != 'id')
-    new_index = [idx[0:15] for idx in expression.index]
-    expression.index = new_index
+    expression = pd.read_csv("data/liver/raw/expression.csv", index_col = 0)
     motif_matrix = pd.DataFrame(0, index=expression.index, columns=list(set(motif[0])))
     for i in range(motif_filter.shape[0]):
         if i % 10000 == 0:
@@ -41,21 +38,8 @@ def generate_data():
         g = motif_filter.iloc[i][1]
         if g in motif_matrix.index and tf in motif_matrix.columns:
             motif_matrix[tf][g] = 1
-    to_drop = []
-    for i in range(len(expression.index)):
-        if sum(expression.iloc[i][expression.columns[1:]]) == 0 or sum(motif_matrix.iloc[i]) == 0:
-            to_drop.append(i)
-    keys = [expression.index[i] for i in to_drop]
-    expression = expression.drop(keys)
-    motif_matrix = motif_matrix.drop(keys)
-    new_index = expression['Description']
-    expression.index = new_index
-    expression = expression[expression.columns[1:]]
-    motif_matrix.index = new_index
-    motif_matrix.to_csv("data/liver/motif.txt")
-    expression.to_csv("data/liver/expression.txt")
-    motif = pd.read_csv("data/liver/motif.txt", index_col = 0)
-    ppi = pd.DataFrame(0, index=motif.columns, columns=motif.columns)
+    motif_matrix.to_csv("data/liver/motif.csv")
+    ppi = pd.DataFrame(0, index=motif_matrix.columns, columns=motif_matrix.columns)
     for i in ppi.columns:
         res = get_neighbors(i)
         for r in res:
@@ -63,4 +47,20 @@ def generate_data():
                 continue
             ppi[i][r] = 1
             ppi[r][i] = 1
-    ppi.to_csv("data/liver/ppi.csv")
+    ppi.to_csv("data/liver/ppi_matrix.csv")
+    motif = pd.read_csv("data/liver/motif.csv", index_col = 0)
+    chip = pd.DataFrame(0, index=motif.index, columns=motif.columns)
+    chip_raw = pd.read_csv("data/liver/raw/TF-Target-information.txt", on_bad_lines='skip', sep='\t')
+    chip_raw = chip_raw[chip_raw['tissue'] == 'liver']
+    translation = pd.read_csv("data/liver/raw/gen_v26_mapping.csv")
+    for i in range(chip_raw.shape[0]):
+        tf = chip_raw.iloc[i, :]['TF']
+        g = chip_raw.iloc[i, :]['target']
+        if tf not in chip.columns:
+            continue
+        translations = list(translation[translation['gene_name'] == g]['gene_id'])
+        for t in translations:
+            if t[0:15] in chip.index:
+                chip.loc[t[0:15], tf] = 1
+    chip.to_csv("data/liver/chip.csv")
+

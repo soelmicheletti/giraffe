@@ -27,27 +27,27 @@ def get_neighbors(P) :
     return list(set(res))
 
 def generate_data():
-    #motif = pd.read_csv("data/colon/raw/motif.txt", sep="\t", header=None)
-    #motif_filter = motif[motif[2] == 1]
-    #expression = pd.read_csv("data/colon/raw/expression.csv", index_col = 0)
-    #motif_matrix = pd.DataFrame(0, index=expression.index, columns=list(set(motif[0])))
-    #for i in range(motif_filter.shape[0]):
-    #    if i % 10000 == 0:
-    #        print(i)
-    #    tf = motif_filter.iloc[i][0]
-    #    g = motif_filter.iloc[i][1]
-    #    if g in motif_matrix.index and tf in motif_matrix.columns:
-    #        motif_matrix[tf][g] = 1
-    #motif_matrix.to_csv("data/colon/motif.csv")
-    #ppi = pd.DataFrame(0, index=motif_matrix.columns, columns=motif_matrix.columns)
-    #for i in ppi.columns:
-    #    res = get_neighbors(i)
-    #    for r in res:
-    #        if r not in ppi.index:
-    #            continue
-    #        ppi[i][r] = 1
-    #        ppi[r][i] = 1
-    #ppi.to_csv("data/colon/ppi_matrix.csv")
+    motif = pd.read_csv("data/colon/raw/motif.txt", sep="\t", header=None)
+    motif_filter = motif[motif[2] == 1]
+    expression = pd.read_csv("data/colon/raw/expression.csv", index_col = 0)
+    motif_matrix = pd.DataFrame(0, index=expression.index, columns=list(set(motif[0])))
+    for i in range(motif_filter.shape[0]):
+        if i % 10000 == 0:
+            print(i)
+        tf = motif_filter.iloc[i][0]
+        g = motif_filter.iloc[i][1]
+        if g in motif_matrix.index and tf in motif_matrix.columns:
+            motif_matrix[tf][g] = 1
+    motif_matrix.to_csv("data/colon/motif.csv")
+    ppi = pd.DataFrame(0, index=motif_matrix.columns, columns=motif_matrix.columns)
+    for i in ppi.columns:
+        res = get_neighbors(i)
+        for r in res:
+            if r not in ppi.index:
+                continue
+            ppi[i][r] = 1
+            ppi[r][i] = 1
+    ppi.to_csv("data/colon/ppi_matrix.csv")
     motif = pd.read_csv("data/colon/motif.csv", index_col = 0)
     chip = pd.DataFrame(0, index=motif.index, columns=motif.columns)
     chip_raw = pd.read_csv("data/colon/raw/TF-Target-information.txt", on_bad_lines='skip', sep='\t')

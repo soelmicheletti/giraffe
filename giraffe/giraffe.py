@@ -241,7 +241,7 @@ class Model(nn.Module):
                 L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
             L4 = torch.norm(torch.matmul(torch.vstack([torch.abs(self.TFA), torch.t(adjusting)]), torch.t(torch.vstack([torch.abs(self.TFA), torch.t(adjusting)]))) - torch.hstack([torch.vstack([PPI, torch.Tensor(np.ones((self.variables_to_adjust, self.R.shape[1])))]), torch.Tensor(torch.ones((self.R.shape[1] + self.variables_to_adjust, self.variables_to_adjust)))])) ** 2
             L5 = torch.norm(torch.hstack([self.R, self.coefs])) ** 2
-            weights = self._get_weights(lam, balance_fn, L1, L2, L3, 0, torch.Tensor(0))
+            weights = self._get_weights(lam, balance_fn, L1, L2, L3, 0, torch.Tensor([0]))
             return weights[0] * L1 + 3 * weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5
 
     def _get_weights(self, lam, balance_fn, L1, L2, L3, L4, L5):

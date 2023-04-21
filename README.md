@@ -51,7 +51,7 @@ ppi ^= ppi.T
 np.fill_diagonal(ppi, 1)
 
 # Run GIRAFFE
-giraffe_model = giraffe.Giraffe(expression, motif, ppi)
+giraffe_model = giraffe.Giraffe(expression, prior, ppi)
 
 R_hat = giraffe_model.get_regulation() # Size (G, TF)
 TFA_hat = giraffe_model.get_tfa() # Size (TF, n)

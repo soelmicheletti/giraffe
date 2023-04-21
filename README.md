@@ -37,10 +37,10 @@ import giraffe
 ## Structure of the repo
 
 - ```giraffe``` contains the source code of our algorithm.
-- ```notebooks/data``` contains the data used and generated in the experiments. Note that the version on GitHub does **not** contain all the data. Please download them from [Zenodo](TODO). 
+- ```notebooks/data``` contains the data used and generated in the experiments. Note that the version on GitHub does **not** contain all the data. Please download them from [Zenodo](https://zenodo.org/record/7852640#.ZEKfV5FBxkg). 
 - The jupyter notebooks in ```notebooks``` can be used to reproduce the experiments in the thesis. 
 
 ## Appreciation
 - [Alexander Marx](https://www.a-marx.com/), [Julia Vogt](https://mds.inf.ethz.ch/team/detail/julia-vogt/), and [John Quackenbush](https://www.hsph.harvard.edu/john-quackenbush/) for making this exchange possible. 
-- [Alexander Marx](https://www.a-marx.com/), [Jonas Fischer](https://scholar.google.com/citations?hl=en&user=Gfc2NA4AAAAJ), and [Panagiotis Mandros](https://www.hsph.harvard.edu/profile/panagiotis-mandros/) for their invaluable guidance throughout this project. 
-- Marouen Ben Guebila, Rebekka Burkholz, Chen Chen, Dawn DeMeo, Viola Fanfani, Intekhab Hossain, Camila Lopes-Ramos, Enakshi Saha, and Katherine Shutta for thoughtful critiques and discussions.
+- [Alexander Marx](https://www.a-marx.com/), [Jonas Fischer](https://scholar.google.com/citations?hl=en&user=Gfc2NA4AAAAJ), and [Panagiotis Mandros](https://www.hsph.harvard.edu/profile/panagiotis-mandros/) for their supervision and invaluable guidance throughout this project. 
+- Marouen Ben Guebila, Rebekka Burkholz, Chen Chen, Dawn DeMeo, Viola Fanfani, Intekhab Hossain, Camila Lopes-Ramos, John Quackenbush, Enakshi Saha, Katherine Shutta, and Julia Vogt for thoughtful critiques and discussions.

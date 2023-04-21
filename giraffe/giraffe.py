@@ -21,14 +21,10 @@ class Giraffe(object):
             while (optionally) controlling for covariates of interest (e.g. age).
             There are G genes, TF transcription factors, and n samples (cells, patients, ...)
 
-            We minimize the following objective:
-                min f(R, TFA)
-                with f(R, TFA) = TODO
-
             Parameters
             -----------
             expression : numpy array or pandas dataframe
-                    TODO
+                    Dimension G x n
             motif : numpy array or pandas dataframe
                     TF-gene regulatory network based on TF motifs as a
                     matrix of size (tf,g), g=number of genes, tf=number of TFs
@@ -50,8 +46,7 @@ class Giraffe(object):
 
             References
             -------------
-                TODO
-                Author of the code: Soel Micheletti
+                Author: Soel Micheletti
         """
 
     def __init__(
@@ -66,7 +61,7 @@ class Giraffe(object):
             lam=None,
             balance_fn = None,
             save_computation = False,
-            seed=42  # For reproducibility
+            seed=42,  # For reproducibility
     ) -> None:
 
         torch.manual_seed(seed)
@@ -236,7 +231,7 @@ class Model(nn.Module):
                 L3 = torch.norm(torch.matmul(self.R, torch.t(self.R)) - C) ** 2
             L4 = torch.norm(torch.matmul(torch.abs(self.TFA), torch.t(torch.abs(self.TFA))) - PPI) ** 2
             L5 = torch.norm(self.R) ** 2
-            weights = self._get_weights(lam, balance_fn, L1, L2, L3)
+            weights = self._get_weights(lam, balance_fn, L1, L2, L3, L4, L5)
             return weights[0] * L1 + weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5
         else :
             L1 = torch.norm(Y - torch.matmul(torch.hstack([self.R, self.coefs]), torch.vstack([torch.abs(self.TFA), torch.t(adjusting)]))) ** 2
@@ -249,14 +244,14 @@ class Model(nn.Module):
             weights = self._get_weights(lam, balance_fn, L1, L2, L3)
             return weights[0] * L1 + 3 * weights[1] * L2 + weights[2] * L3 + weights[3] * L4 + weights[4] * L5
 
-    def _get_weights(self, lam, balance_fn, L1, L2, L3):
+    def _get_weights(self, lam, balance_fn, L1, L2, L3, L4, L5):
         weights = [1, 1, 1, 1, 1]
         if lam is not None:
             weights = lam
         elif balance_fn is not None:
             weights = balance_fn(L1, L2, L3)
         else:
-            sum = L1.item() + L2.item() + L3.item()
+            sum = L1.item() + L2.item() + L3.item() + L5.item()
             weights = [1 - L1.item() / sum, 1 - L2.item() / sum, 1 - L3.item() / sum, 1, 1]
         return weights
 

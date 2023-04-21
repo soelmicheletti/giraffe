@@ -57,7 +57,7 @@ R_hat = giraffe_model.get_regulation() # Size (G, TF)
 TFA_hat = giraffe_model.get_tfa() # Size (TF, n)
 ```
 
-More details can be found in our [Tutorial](./Turotial.ipynb). 
+More details can be found in our [Tutorial](./Tutorial.ipynb). 
 
 ## Structure of the repo
 

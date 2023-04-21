@@ -9,4 +9,4 @@ Raw data in `raw` have been downloaded from the following links:
 
 TF-gene priors are from CIS-BP, and PPI has been extracted from STRING. 
 
-The other files are computed either by `preprocessing.py` or by the jupyter notebook using the option `cache=False`. 
+The other files are computed either by `preprocessing.py`, by the corresponding R file, or by the jupyter notebook using the option `cache=False`. 

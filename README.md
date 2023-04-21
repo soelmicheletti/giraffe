@@ -34,6 +34,31 @@ import giraffe
 
 ## Usage
 
+```python
+import giraffe
+import numpy as np
+
+# Generate toy data
+G = 100 # Genes
+TF = 20 # Transcription factors (proteins)
+n = 10 # Samples (e.g. individuals)
+
+# expression of size (G, n); prior of size (G, TF); PPI of size (TF, TF)
+expression = np.random.random((G, n))
+prior = np.random.randint(0, 2, size = (G, TF))
+ppi = np.random.randint(0, 2, size = (TF, TF))
+ppi ^= ppi.T
+np.fill_diagonal(ppi, 1)
+
+# Run GIRAFFE
+giraffe_model = giraffe.Giraffe(expression, motif, ppi)
+
+R_hat = giraffe_model.get_regulation() # Size (G, TF)
+TFA_hat = giraffe_model.get_tfa() # Size (TF, n)
+```
+
+More details can be found in our [Tutorial](./Turotial.ipynb). 
+
 ## Structure of the repo
 
 - ```giraffe``` contains the source code of our algorithm.

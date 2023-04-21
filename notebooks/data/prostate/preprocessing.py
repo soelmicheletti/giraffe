@@ -47,7 +47,7 @@ def generate_data():
                 continue
             ppi[i][r] = 1
             ppi[r][i] = 1
-    ppi.to_csv("data/breast/ppi_matrix.csv")
+    ppi.to_csv("data/prostate/ppi_matrix.csv")
     motif = pd.read_csv("data/prostate/motif.csv", index_col = 0)
     chip = pd.DataFrame(0, index=motif.index, columns=motif.columns)
     chip_raw = pd.read_csv("data/prostate/raw/TF-Target-information.txt", on_bad_lines='skip', sep='\t')

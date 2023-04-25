@@ -64,6 +64,7 @@ More details can be found in our [Tutorial](./Tutorial.ipynb).
 - ```giraffe``` contains the source code of our algorithm.
 - ```notebooks/data``` contains the data used and generated in the experiments. Note that the version on GitHub does **not** contain all the data. Please download them from [Zenodo](https://zenodo.org/record/7852640#.ZEKfV5FBxkg). 
 - The jupyter notebooks in ```notebooks``` can be used to reproduce the experiments in the thesis. 
+- We provide an introduction to computational methods for gene regulation on [Medium](https://medium.com/@soel-micheletti/biological-networks-and-their-applications-to-unveil-cancer-mechanisms-afeb07b87ff8), with the hope to facilitate researchers without a computational biology background. 
 
 ## Appreciation
 - [Alexander Marx](https://www.a-marx.com/), [Julia Vogt](https://mds.inf.ethz.ch/team/detail/julia-vogt/), and [John Quackenbush](https://www.hsph.harvard.edu/john-quackenbush/) for making this exchange possible. 

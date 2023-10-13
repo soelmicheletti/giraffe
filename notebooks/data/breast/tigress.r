@@ -1,6 +1,7 @@
 tigress <-
   function(expdata, tflist=colnames(expdata), targetlist=colnames(expdata), alpha=0.2, nstepsLARS=5, nsplit=100, normalizeexp=TRUE, scoring="area", allsteps=TRUE, verb=FALSE, usemulticore=FALSE)
   {
+    start <- Sys.time()
     # Check if we can run multicore
     if (usemulticore) {
       require(parallel)
@@ -87,7 +88,7 @@ tigress <-
       rownames(edgepred[[i]]) <- tflist
       colnames(edgepred[[i]]) <- targetlist
     }
-    
+    print(paste("Computation performed in",round(as.numeric(difftime(Sys.time(), start,units = "secs")),1), "seconds"))
     # Return the result
     if (allsteps) {
       return(edgepred)

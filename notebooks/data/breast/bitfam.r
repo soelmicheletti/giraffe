@@ -1,5 +1,6 @@
 # Code from https://github.com/jaleesr/BITFAM/tree/master/R
 BITFAM <- function(data, species, tf, interseted_TF = NA, scATAC_obj = NA, ncores = 1, iter = 8000, tol_rel_obj=0.005){
+  start <- Sys.time()
   if(species == "mouse"){
     TF_targets_dir <- "mouse/"
   }else if(species == "human"){
@@ -89,6 +90,7 @@ suppressWarnings(fit.vb <- vb(m_beta_prior, data = data_to_model, algorithm = "m
 result_matrix <- apply(extract(fit.vb,"W")[[1]], c(2,3), mean)
 rownames(result_matrix) <- rownames(data)
 colnames(result_matrix) <- TF_used
+print(paste("Computation performed in",round(as.numeric(difftime(Sys.time(), start,units = "secs")),1), "seconds"))
 return(result_matrix)
 }
 
@@ -744,8 +746,14 @@ tf <- c('ENSG00000169297',
              'ENSG00000180828',
              'ENSG00000196482',
              'ENSG00000065978')
-g <- 3000
-E <- expr[c(seq(1, g, 1)), c(seq(2, 218, 1))]
-tf_r <- tf[which(tf %in% rownames(E))]
-R <- BITFAM(E, species = 'human', tf = tf_r)
-write.csv(R, "R_bitfam.csv", row.names = TRUE)
+
+start = 6001
+start_time <- Sys.time()
+while(start < dim(expr)[1]){
+  E <- expr[c(seq(start, start + 3000, 1)), c(seq(2, dim(expr)[2], 1))]
+  tf_r <- tf[which(tf %in% rownames(E))]
+  R <- BITFAM(E, species = 'human', tf = tf_r)
+  write.csv(R, paste("R_bitfam_", as.character(start), ".csv", sep = ""), row.names = TRUE)
+  start = start + 3000
+}
+print(paste("Computation performed in",round(as.numeric(difftime(Sys.time(), start_time,units = "secs")),1), "seconds"))

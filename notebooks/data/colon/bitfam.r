@@ -746,10 +746,12 @@ tf <- c('ENSG00000169297',
              'ENSG00000065978')
 
 start = 1
+start_time <- Sys.time()
 while(start < dim(expr)[1]){
   E <- expr[c(seq(start, start + 3000, 1)), c(seq(2, dim(expr)[2], 1))]
   tf_r <- tf[which(tf %in% rownames(E))]
   R <- BITFAM(E, species = 'human', tf = tf_r)
-  write.csv(R, paste("R_bitfam_", as.character(start), ".csv", sep = ""), row.names = TRUE)
+  #write.csv(R, paste("R_bitfam_", as.character(start), ".csv", sep = ""), row.names = TRUE)
   start = start + 3000
 }
+print(paste("Computation performed in",round(as.numeric(difftime(Sys.time(), start_time,units = "secs")),1), "seconds"))

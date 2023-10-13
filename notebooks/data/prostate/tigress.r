@@ -798,7 +798,14 @@ tf_comp <- c('ENSG00000169297',
         'ENSG00000196482',
         'ENSG00000065978')
 library(lars)
-g <- 5000
-tf_r <- tf_comp[which(tf_comp %in% colnames(expr)[seq(2, g, 1)])]
-R <- tigress(expr[,c(seq(2, g, 1))], tflist = tf_r, nstepsLARS=2, nsplit=10, allsteps=FALSE)
-write.csv(R, "R_tigress.csv")
+start = 2
+start_time <- Sys.time()
+while(start < dim(expr)[2]){
+  end = min(start + 5000, dim(expr)[2])
+  tf_r <- tf_comp[which(tf_comp %in% colnames(expr)[seq(start, end, 1)])]
+  R <- tigress(expr[,c(seq(start, end, 1))], tflist = tf_r, nstepsLARS=2, nsplit=7, allsteps=FALSE)
+  write.csv(R, paste("R_tigress_", as.character(start), ".csv", sep = ""))  
+  start = start + 5000
+  print("DONE!")
+}
+print(paste("Computation performed in",round(as.numeric(difftime(Sys.time(), start_time,units = "secs")),1), "seconds"))

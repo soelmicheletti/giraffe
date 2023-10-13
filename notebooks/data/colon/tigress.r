@@ -798,6 +798,7 @@ tf_comp <- c('ENSG00000169297',
         'ENSG00000065978')
 library(lars)
 start = 2
+start_time <- Sys.time()
 while(start < dim(expr)[2]){
   end = min(start + 5000, dim(expr)[2])
   tf_r <- tf_comp[which(tf_comp %in% colnames(expr)[seq(start, end, 1)])]
@@ -806,3 +807,4 @@ while(start < dim(expr)[2]){
   start = start + 5000
   print("DONE!")
 }
+print(paste("Computation performed in",round(as.numeric(difftime(Sys.time(), start_time,units = "secs")),1), "seconds"))

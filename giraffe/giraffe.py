@@ -4,6 +4,7 @@ import torch
 from torch import nn
 from torch.functional import F
 from typing import Callable
+from netZooPy.cobra import *
 from .utils import *
 
 from torch.optim import Adam
@@ -25,12 +26,16 @@ class Giraffe(object):
             -----------
             expression : numpy array or pandas dataframe
                     Dimension G x n
-            motif : numpy array or pandas dataframe
+            prior : numpy array or pandas dataframe
                     TF-gene regulatory network based on TF motifs as a
                     matrix of size (tf,g), g=number of genes, tf=number of TFs
-            PPI : numpy array or pandas dataframe
+            ppi : numpy array or pandas dataframe
                     TF-TF protein interaction network as a matrix of size (tf, tf)
                     Must be symmetrical and have ones on the diagonal
+            cobra_design_matrix : np.ndarray, pd.DataFrame
+                    COBRA design matrix of size (n, q), n = number of samples, q = number of covariates
+            cobra_covariate_to_keep : int
+                    Zero-indedex base of COBRA co-expression component to use
             iterations : int
                     number of iterations of the algorithm
             lr : float
@@ -55,6 +60,8 @@ class Giraffe(object):
             prior,
             ppi,
             adjusting=None,
+            cobra_design_matrix=None,
+            cobra_covariate_to_keep=0,
             regularization=0,
             iterations=200,
             lr=1e-5,
@@ -72,7 +79,9 @@ class Giraffe(object):
             expression,
             prior,
             ppi,
-            adjusting
+            adjusting,
+            cobra_design_matrix,
+            cobra_covariate_to_keep
         )
         self._iterations = iterations
         self._lr = lr
@@ -88,7 +97,9 @@ class Giraffe(object):
             expression,
             motif,
             ppi,
-            adjusting
+            adjusting,
+            cobra_design_matrix,
+            cobra_covariate_to_keep
     ):
         """
         Processes data files into normzalized data matrices.
@@ -151,7 +162,16 @@ class Giraffe(object):
             # Compute co-expression matrix
             if (np.cov(self._expression).diagonal() == 0).any():
                 self._expression += 1e-8
-            self._C = np.corrcoef(self._expression)
+
+            if cobra_design_matrix is not None:
+                psi, Q, d, g = cobra(cobra_design_matrix, self._expression)
+                if cobra_covariate_to_keep < 0 or cobra_covariate_to_keep >= psi.shape[0]:
+                    raise AttributeError(
+                        "Invalid COBRA component! Valid COBRA components are in range " + str(0) + " - " + str(psi.shape[0] - 1)
+                    )
+                self._C = Q.dot(np.diag(psi[cobra_covariate_to_keep,])).dot(Q.T)
+            else:
+                self._C = np.corrcoef(self._expression)
             self._C /= np.trace(self._C)
 
     def _compute_giraffe(self):

@@ -32,7 +32,7 @@ class Giraffe(object):
             ppi : numpy array or pandas dataframe
                     TF-TF protein interaction network as a matrix of size (tf, tf)
                     Must be symmetrical and have ones on the diagonal
-            cobra_design_matrix : np.ndarray, pd.DataFrame
+            design_matrix : np.ndarray, pd.DataFrame
                     COBRA design matrix of size (n, q), n = number of samples, q = number of covariates
             cobra_covariate_to_keep : int
                     Zero-indedex base of COBRA co-expression component to use
@@ -60,7 +60,7 @@ class Giraffe(object):
             prior,
             ppi,
             adjusting=None,
-            cobra_design_matrix=None,
+            design_matrix=None,
             cobra_covariate_to_keep=0,
             regularization=0,
             iterations=200,
@@ -80,7 +80,7 @@ class Giraffe(object):
             prior,
             ppi,
             adjusting,
-            cobra_design_matrix,
+            design_matrix,
             cobra_covariate_to_keep
         )
         self._iterations = iterations
@@ -98,7 +98,7 @@ class Giraffe(object):
             motif,
             ppi,
             adjusting,
-            cobra_design_matrix,
+            design_matrix,
             cobra_covariate_to_keep
     ):
         """
@@ -163,8 +163,8 @@ class Giraffe(object):
             if (np.cov(self._expression).diagonal() == 0).any():
                 self._expression += 1e-8
 
-            if cobra_design_matrix is not None:
-                psi, Q, d, g = cobra(cobra_design_matrix, self._expression)
+            if design_matrix is not None:
+                psi, Q, d, g = cobra(design_matrix, self._expression)
                 if cobra_covariate_to_keep < 0 or cobra_covariate_to_keep >= psi.shape[0]:
                     raise AttributeError(
                         "Invalid COBRA component! Valid COBRA components are in range " + str(0) + " - " + str(psi.shape[0] - 1)
@@ -173,6 +173,9 @@ class Giraffe(object):
             else:
                 self._C = np.corrcoef(self._expression)
             self._C /= np.trace(self._C)
+        
+        if design_matrix is not None:
+            self._expression = limma(exprs=self._expression, pheno=pd.DataFrame(design_matrix), covariate_formula = "~ -1")
 
     def _compute_giraffe(self):
         """

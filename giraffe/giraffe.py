@@ -63,7 +63,7 @@ class Giraffe(object):
             design_matrix=None,
             cobra_covariate_to_keep=0,
             regularization=0,
-            iterations=200,
+            max_iter=2000,
             lr=1e-5,
             lam=None,
             balance_fn = None,
@@ -83,7 +83,7 @@ class Giraffe(object):
             design_matrix,
             cobra_covariate_to_keep
         )
-        self._iterations = iterations
+        self._max_iter = max_iter
         self._lr = lr
         self._l = regularization
         self._lam = lam
@@ -193,7 +193,9 @@ class Giraffe(object):
         if self._l > 0:
             optim = ProxAdam(giraffe_model.parameters(), lr=self._lr, lambda_ = self._l)
 
-        for i in range(self._iterations):
+        last_loss = float('inf')
+        converged = False
+        for i in range(self._max_iter):
             pred = giraffe_model(
                 torch.Tensor(self._expression),
                 torch.Tensor(self._ppi),
@@ -208,7 +210,13 @@ class Giraffe(object):
             optim.zero_grad()  # Reset gradients
             loss.backward()
             optim.step()  # Adam step
+            if i >= 200 and abs(last_loss - loss.detach().numpy()) / last_loss < 1e-3:
+                converged=True
+                break
+            last_loss = loss.detach().numpy()
 
+        if not converged:
+            warnings.warn('GIRAFFE did not converge and was stopped after ' + str(self._max_iter) + ' iterations. Try increasing the max_iter parameter.')
         R = giraffe_model.R.detach().numpy()
         TFA = torch.abs(giraffe_model.TFA.detach()).numpy()
         return R, TFA
@@ -217,10 +225,11 @@ class Giraffe(object):
         return self._R
 
     def get_tfa(self):
-        TFA_giraffe = np.zeros(self._TFA.shape)
-        for i in range(self._TFA.shape[1]):
-            TFA_giraffe[:, i] = LinearRegression(fit_intercept=False, positive=True).fit(self._R, self._expression[:, i]).coef_
-        return TFA_giraffe
+        return self._TFA
+        # TFA_giraffe = np.zeros(self._TFA.shape)
+        # for i in range(self._TFA.shape[1]):
+        #    TFA_giraffe[:, i] = LinearRegression(fit_intercept=False, positive=True).fit(self._R, self._expression[:, i]).coef_
+        # return TFA_giraffe
 
 
 class Model(nn.Module):

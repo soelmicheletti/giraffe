@@ -92,9 +92,12 @@ res <- c()
 for(i in seq_len(length(shuffling))){
   S <- c()
   for(j in seq_len(B)){
-    prior <- read.csv(paste0("simulation_data/prior_sim_", (i - 1), "_shuffle_", shuffling[i], ".csv"))
-    expr <- read.csv(paste0("simulation_data/gene_expression_sim_", (i - 1), "_shuffle_", shuffling[i], ".csv"))
-    R <- read.csv(paste0("simulation_data/R_sim_", (i - 1), "_shuffle_", shuffling[i], ".csv"))
+    prior <- read.csv(paste0("simulation_data/prior_sim_", (j - 1), "_shuffle_", shuffling[i], ".csv"))
+    prior <- prior[c(seq(1, dim(prior)[1], 1)), c(seq(2, dim(prior)[2], 1))]
+    expr <- read.csv(paste0("simulation_data/gene_expression_sim_", (j - 1), "_shuffle_", shuffling[i], ".csv"))
+    expr <- expr[c(seq(101, dim(expr)[1], 1)),c(seq(2, dim(expr)[2], 1))]
+    R <- read.csv(paste0("simulation_data/R_sim_", (j - 1), "_shuffle_", shuffling[i], ".csv"))
+    R <- R[c(seq(1, dim(R)[1], 1)), c(seq(2, dim(R)[2], 1))]
     rownames(prior) <- rownames(expr)
     
     R_tiger <- netZooR::tiger(expr, t(prior), TFexpressed = FALSE, signed = FALSE)$W
@@ -102,6 +105,7 @@ for(i in seq_len(length(shuffling))){
     methodPred  <- prediction(flatten(as.matrix(R_tiger)), flatten(as.matrix(R)))
     auc.methodPred  <- performance(methodPred, "auc")@y.values[[1]]
     S <- c(S, auc.methodPred)
+    print(auc.methodPred)
   }
   res <- c(res, S)
 }
@@ -119,12 +123,12 @@ while(TRUE){
 
 res <- c()
 for(j in seq_len(B)){
-    expr <- read.csv(paste0("simulation_data/gene_expression_sim_", j, "_shuffle_", shuffling[i], ".csv"))
-    R <- read.csv(paste0("simulation_data/R_sim_", j - 1, "_shuffle_", shuffling[i], ".csv"))
+    expr <- read.csv(paste0("simulation_data/gene_expression_sim_", (j - 1), "_shuffle_", shuffling[i], ".csv"))
+    expr <- expr[c(seq(101, dim(expr)[1], 1)),c(seq(2, dim(expr)[2], 1))]
+    R <- read.csv(paste0("simulation_data/R_sim_", (j - 1), "_shuffle_", shuffling[i], ".csv"))
     R <- R[,c(seq(2, dim(R)[2], 1))]
     
-    R_bitfam <- BITFAM(expr[c(seq(1, dim(expr)[1], 1)),c(seq(2, dim(expr)[2], 1))], tf=rownames(expr)[c(seq(1, 100, 1))])
-    R_bitfam <- R_bitfam[c(seq(101, dim(expr)[1], 1)),]
+    R_bitfam <- BITFAM(expr, tf=rownames(expr)[c(seq(1, 100, 1))])
     
     R[R != 0] <- 1
     methodPred  <- prediction(flatten(as.matrix(R_bitfam)), flatten(as.matrix(R)))
@@ -135,17 +139,15 @@ for(j in seq_len(B)){
 res <- c()
 for(j in seq_len(B)){
   print(j)
-  expr <- read.csv(paste0("simulation_data/gene_expression_sim_", j, "_shuffle_", shuffling[1], ".csv"))
+  expr <- read.csv(paste0("simulation_data/gene_expression_sim_", (j - 1), "_shuffle_", shuffling[1], ".csv"))
+  expr <- expr[c(seq(1, dim(expr)[1], 1)),c(seq(2, dim(expr)[2], 1))]
   R <- read.csv(paste0("simulation_data/R_sim_", j - 1, "_shuffle_", shuffling[1], ".csv"))
   R <- R[,c(seq(2, dim(R)[2], 1))]
   
   R_tigress <- tigress(
-    t(expr[c(seq(1, dim(expr)[1], 1)),c(seq(2, dim(expr)[2], 1))]) + matrix(rnorm(600 * 50, sd = 0.001), nrow = 50), 
+    t(expr) + matrix(rnorm(600 * 50, sd = 0.001), nrow = 50), 
     tf=rownames(expr)[c(seq(1, 100, 1))], 
     targetlist = rownames(expr)[c(seq(101, 600, 1))],
-    alpha=.5,
-    normalizeexp = FALSE,
-    verb=TRUE,
     allsteps = FALSE
   )
   R_tigress <- t(R_tigress)
@@ -153,5 +155,5 @@ for(j in seq_len(B)){
   R[R != 0] <- 1
   methodPred  <- prediction(flatten(as.matrix(R_tigress)), flatten(as.matrix(R)))
   auc.methodPred  <- performance(methodPred, "auc")@y.values[[1]]
-  res <- c(res, auc.methodPred),
+  res <- c(res, auc.methodPred)
 }

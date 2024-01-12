@@ -14,7 +14,7 @@ setup(
         "matrix factorization",
     ],
     install_requires=["matplotlib>=3.3.4",
-                      "netZooPy>=0.8.1",
+                      "netZooPy>=0.10.0",
                       "numpy>=1.19.2",
                       "pandas>=1.4.4",
                       "plotly>=5.10",

@@ -6,6 +6,7 @@ from torch.functional import F
 from typing import Callable
 from netZooPy.cobra import *
 from .utils import *
+import logging
 
 from torch.optim import Adam
 from torch.optim.optimizer import required
@@ -62,8 +63,9 @@ class Giraffe(object):
             adjusting=None,
             design_matrix=None,
             cobra_covariate_to_keep=0,
-            regularization=0,
+            l1=0,
             max_iter=2000,
+            min_iter=200,
             lr=1e-5,
             lam=None,
             balance_fn = None,
@@ -84,8 +86,9 @@ class Giraffe(object):
             cobra_covariate_to_keep
         )
         self._max_iter = max_iter
+        self._min_iter = min_iter
         self._lr = lr
-        self._l = regularization
+        self._l = l1
         self._lam = lam
         self._balance_fn = balance_fn
         if self._lam is not None and self._balance_fn is not None:
@@ -210,13 +213,13 @@ class Giraffe(object):
             optim.zero_grad()  # Reset gradients
             loss.backward()
             optim.step()  # Adam step
-            if i >= 200 and abs(last_loss - loss.detach().numpy()) / last_loss < 1e-3:
+            if i >= self._min_iter and abs(last_loss - loss.detach().numpy()) / last_loss < 1e-3:
                 converged=True
                 break
             last_loss = loss.detach().numpy()
 
         if not converged:
-            warnings.warn('GIRAFFE did not converge and was stopped after ' + str(self._max_iter) + ' iterations. Try increasing the max_iter parameter.')
+            logging.warn('GIRAFFE did not converge and was stopped after ' + str(self._max_iter) + ' iterations. Try increasing the max_iter parameter.')
         R = giraffe_model.R.detach().numpy()
         TFA = torch.abs(giraffe_model.TFA.detach()).numpy()
         return R, TFA
@@ -281,7 +284,7 @@ class Model(nn.Module):
         if lam is not None:
             weights = lam
         elif balance_fn is not None:
-            weights = balance_fn(L1, L2, L3)
+            weights = balance_fn(L1, L2, L3, L5)
         else:
             sum = L1.item() + L2.item() + L3.item() + L5.item()
             weights = [1 - L1.item() / sum, 1 - L2.item() / sum, 1 - L3.item() / sum, 1, 1]

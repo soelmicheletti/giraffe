@@ -1,5 +1,6 @@
 __pycache__
 *.egg-info/
+*.DS_Store
 .idea/
 .ipynb_checkpoints
 notebooks/data/lung/raw/expression.csv

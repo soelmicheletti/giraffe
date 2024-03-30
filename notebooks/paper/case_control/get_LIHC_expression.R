@@ -41,3 +41,8 @@ cancer <- ifelse(cancer == "Solid Tissue Normal", 0, 1)
 
 write.csv(expression[,cancer == 0], "LIHC_nat.csv")
 write.csv(expression[,cancer == 1], "LIHC_case.csv")
+
+sex <- metadata$tcga.gdc_cases.demographic.gender[cancer == 1]
+expression_case <- expression[,cancer == 1]
+write.csv(expression_case[,sex == "male"], "LIHC_male.csv")
+write.csv(expression_case[,sex == "female"], "LIHC_female.csv")
